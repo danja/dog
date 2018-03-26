@@ -5,11 +5,14 @@
 #define CLOCK_IO 7
 #define DATA_IO 8
 
+#define ACTIVATE 0x8f
 #define BUTTONS 0x42
+#define WRITE_LOC 0x44
+#define WRITE_INC 0x40
 
 long pc = 0; // program counter
 
-// map of ASCII vaules to 7-segment
+// map of ASCII values to 7-segment
 const uint8_t ss[128] = {
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // padding for non-char ASCII
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -121,7 +124,7 @@ void setup()
   pinMode(STROBE_IO, OUTPUT);
   pinMode(CLOCK_IO, OUTPUT);
   pinMode(DATA_IO, OUTPUT);
-  sendCommand(0x8f);  // activate
+  sendCommand(ACTIVATE);  // activate
   reset();
 }
 
@@ -134,7 +137,7 @@ void sendCommand(uint8_t value)
 
 void reset()
 {
-  sendCommand(0x40); // set auto increment mode
+  sendCommand(WRITE_INC); // set auto increment mode
   digitalWrite(STROBE_IO, LOW);
   shiftOut(DATA_IO, CLOCK_IO, LSBFIRST, 0xc0);   // set starting address to 0
   for (uint8_t i = 0; i < 16; i++)
@@ -165,7 +168,7 @@ uint8_t readButtons()
 void setLed(uint8_t value, uint8_t position)
 {
   pinMode(DATA_IO, OUTPUT);
-  sendCommand(0x44);
+  sendCommand(WRITE_LOC);
   digitalWrite(STROBE_IO, LOW);
   shiftOut(DATA_IO, CLOCK_IO, LSBFIRST, 0xC1 + (position << 1));
   shiftOut(DATA_IO, CLOCK_IO, LSBFIRST, value);
@@ -200,7 +203,7 @@ void displayText(String text) {
 }
 
 void displayASCII(uint8_t position, uint8_t ascii) {
-  sendCommand(0x44);
+  sendCommand(WRITE_LOC);
   digitalWrite(STROBE_IO, LOW);
   shiftOut(DATA_IO, CLOCK_IO, LSBFIRST, 0xC0 + (position << 1));
   shiftOut(DATA_IO, CLOCK_IO, LSBFIRST, ss[ascii]);
@@ -208,7 +211,7 @@ void displayASCII(uint8_t position, uint8_t ascii) {
 }
 
 void displayHex(uint8_t position, uint8_t hex) {
-  sendCommand(0x44);
+  sendCommand(WRITE_LOC);
   digitalWrite(STROBE_IO, LOW);
   shiftOut(DATA_IO, CLOCK_IO, LSBFIRST, 0xC0 + (position << 1));
   shiftOut(DATA_IO, CLOCK_IO, LSBFIRST, hexss[hex]);
