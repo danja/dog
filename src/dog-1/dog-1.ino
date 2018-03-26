@@ -1,14 +1,16 @@
 /*  Comms with TM1638
     these are the ports without extra functions on the Uno
 */
-const int STROBE_IO = 4;
-const int CLOCK_IO = 7;
-const int DATA_IO = 8;
+#define STROBE_IO 4
+#define CLOCK_IO 7
+#define DATA_IO 8
+
+#define BUTTONS 0x42
 
 long pc = 0; // program counter
 
 // map of ASCII vaules to 7-segment
-const PROGMEM uint8_t ss[128] = {
+const uint8_t ss[128] = {
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // padding for non-char ASCII
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
   0x00, /* (space) */
@@ -109,7 +111,7 @@ const PROGMEM uint8_t ss[128] = {
   0x00, /* (del) */
 };
 
-const PROGMEM uint8_t hexss[16] = {
+const uint8_t hexss[16] = {
   ss['0'], ss['1'], ss['2'], ss['3'], ss['4'], ss['5'], ss['6'], ss['7'], ss['8'], ss['9'], ss['A'], ss['b'], ss['C'], ss['d'], ss['E'], ss['F']
 };
 
@@ -146,7 +148,7 @@ uint8_t readButtons()
 {
   uint8_t buttons = 0;
   digitalWrite(STROBE_IO, LOW);
-  shiftOut(DATA_IO, CLOCK_IO, LSBFIRST, 0x42);
+  shiftOut(DATA_IO, CLOCK_IO, LSBFIRST, BUTTONS);
   pinMode(DATA_IO, INPUT);
 
   for (uint8_t i = 0; i < 4; i++)
