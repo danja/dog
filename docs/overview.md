@@ -78,7 +78,7 @@ At any time, pressing buttons 4 and 5 **together** will reset the PC to 0000.
 
 Pressing the buttons 0-3, 6-7 will increment the value corresponding to that of the display above it. Programming is achieved by pressing button 3 to increment the PC (with overflow occurring, counting up on displays 0-2). Pressing button 7 will increment the value on display 7 (*without* overflowing to display 6), ditto for button 6/display 6, together providing the value at the given address.
 
-Pressing button 4 again will switch to *Run* mode.
+Pressing button 4 again will switch to **Run** mode.
 
 ### Run Mode
 

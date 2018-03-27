@@ -10,7 +10,7 @@
 #define WRITE_LOC 0x44
 #define WRITE_INC 0x40
 
-#define MAX_PROG_SIZE 1000 // probably need to move this elsewhere, is greedy
+#define MAX_PROG_SIZE 1024 // probably need to move prog elsewhere, is greedy
 
 #define PROG_MODE false
 #define RUN_MODE true
@@ -21,7 +21,10 @@ boolean mode = PROG_MODE;
    The Registers
 */
 long pc = 0; // program counter
-uint8_t program[MAX_PROG_SIZE];
+uint8_t program[MAX_PROG_SIZE]; // the code
+
+uint8_t status = 48; // just a vaguely sensible test pattern, LEDs over system displays only (4 & 5)
+
 
 // map of ASCII values to 7-segment
 const uint8_t ss[128] = {
@@ -184,7 +187,7 @@ uint8_t readButtons()
   return buttons;
 }
 
-void setLed(uint8_t value, uint8_t position)
+void setLED(uint8_t position, uint8_t value)
 {
   pinMode(DATA_IO, OUTPUT);
   sendCommand(WRITE_LOC);
@@ -203,19 +206,38 @@ void loop()
   while (1) {
 
     handleButtons();
-    if (pc >= 65536) pc = 0; // max
+    if (pc >= MAX_PROG_SIZE) pc = 0;
+    if (pc < 0) pc = MAX_PROG_SIZE - 1;
     displayMode();
     displayPC();
     displayCode();
+    showStatus();
 
     delay(100);
   }
 }
 
+/*
+ * LEDs 
+ */
+ void showStatus() {
+  uint8_t shifty = status;
+  
+  for(uint8_t i=0; i<8;i++) {
+    setLED(i, shifty & 1);
+    shifty = shifty >> 1;
+  }
+ }
+ 
+/*
+ * Buttons
+ */
+
 unsigned long buttonMillis = 0; // time since last button press
 unsigned long buttonDelay = 200;
 uint8_t previousButtons = 0;
-uint8_t incdec = 1; // 1 for increment values, -1 for decrement
+
+uint8_t incdec = true; // true for increment, false for decrement
 
 void handleButtons() {
   uint8_t buttons = readButtons();
@@ -227,42 +249,88 @@ void handleButtons() {
     previousButtons = buttons;
 
     // do system buttons (4 & 5)
+
+    // both together - reset pc
+    if ( (buttons & (1 << 4)) && (buttons & (1 << 5))) {
+      pc = 0;
+      return;
+    }
+
+
     if (buttons & (1 << 4)) {
       mode = !mode;
+      return;
     }
 
     if (mode == PROG_MODE) {
       if (buttons & (1 << 5)) {
-        incdec *= -1;
+        incdec = !incdec;
+        return;
       }
     }
 
-    // do PC buttons (0-3) - inc/dec value as appropriate
+    // do PC buttons (0-3) - inc/dec value as appropriate, have removed wrap below zero, it was getting too confusing
     if (buttons & (1 << 3)) {
-      pc += incdec;
-    }
-    if (buttons & (1 << 2)) {
-      pc += 16 * incdec;
-    }
-    if (buttons & (1 << 1)) {
-      pc += 256 * incdec;
-    }
-    if (buttons & (1 << 0)) {
-      pc += 4096 * incdec;
+      if (incdec) {
+        pc++;
+      } else {
+        if (pc > 0) pc--;
+      }
+      return;
     }
 
-    // do program buttons (6 & 7)- inc/dec value as appropriate, note there's no carry
+    if (buttons & (1 << 2)) {
+      if (incdec) {
+        pc += 16;
+      } else {
+        if (pc > 16) pc -= 16;
+      }
+      return;
+    }
+
+    if (buttons & (1 << 1)) {
+      if (incdec) {
+        pc += 256 ;
+      } else {
+        if (pc > 256) pc -= 256;
+      }
+      return;
+    }
+
+    if (buttons & (1 << 0)) {
+      if (incdec) {
+        pc += 4096;
+      } else {
+        if (pc > 4096) pc -= 4096;
+      }
+      return;
+    }
+
+    // do code buttons (6 & 7)- inc/dec value as appropriate, note there's no carry or wrap
     uint8_t codeLow = program[pc] & 0xF; // mask
     uint8_t codeHigh = (program[pc] & 0xF0) >> 4; // mask & shift
     if (buttons & (1 << 6)) {
-      codeHigh++;
-      if (codeHigh >= 16) codeHigh = 0;
+      if (incdec) {
+        codeHigh++;
+        if (codeHigh >= 16) codeHigh = 0;
+      } else {
+        if (codeHigh > 0) {
+          codeHigh--;
+        }
+      }
     }
+
     if (buttons & (1 << 7)) {
-      codeLow++;
-      if (codeLow >= 16) codeLow = 0;
+      if (incdec) {
+        codeLow++;
+        if (codeLow >= 16) codeLow = 0;
+      } else {
+        if (codeLow > 0) {
+          codeLow--;
+        }
+      }
     }
-    program[pc] = codeHigh * 16 + codeLow;
+    program[pc] = (codeHigh << 4) + codeLow;
   }
 }
 
@@ -276,7 +344,7 @@ void displayText(String text) {
   }
 }
 
-void displaySS(uint8_t position, uint8_t value) {
+void displaySS(uint8_t position, uint8_t value) { // call 7-segment
   sendCommand(WRITE_LOC);
   digitalWrite(STROBE_IO, LOW);
   shiftOut(DATA_IO, CLOCK_IO, LSBFIRST, 0xC0 + (position << 1));
@@ -285,21 +353,12 @@ void displaySS(uint8_t position, uint8_t value) {
 }
 
 void displayASCII(uint8_t position, uint8_t ascii) {
-  sendCommand(WRITE_LOC);
-  digitalWrite(STROBE_IO, LOW);
-  shiftOut(DATA_IO, CLOCK_IO, LSBFIRST, 0xC0 + (position << 1));
-  shiftOut(DATA_IO, CLOCK_IO, LSBFIRST, ss[ascii]);
-  digitalWrite(STROBE_IO, HIGH);
+  displaySS(position, ss[ascii]);
 }
 
 void displayHex(uint8_t position, uint8_t hex) {
-  sendCommand(WRITE_LOC);
-  digitalWrite(STROBE_IO, LOW);
-  shiftOut(DATA_IO, CLOCK_IO, LSBFIRST, 0xC0 + (position << 1));
-  shiftOut(DATA_IO, CLOCK_IO, LSBFIRST, hexss[hex]);
-  digitalWrite(STROBE_IO, HIGH);
+  displaySS(position, hexss[hex]);
 }
-
 
 void displayPC() {
   long pc_cut = pc;
@@ -324,7 +383,7 @@ void displayCode() {
 void displayMode() {
   if (mode == PROG_MODE) {
     displayASCII(4, 'P');
-    if (incdec == 1) {
+    if (incdec) {
       displaySS(5, 1); // just the top segment
     } else {
       displaySS(5, 8); // just the top segment
