@@ -10,7 +10,18 @@
 #define WRITE_LOC 0x44
 #define WRITE_INC 0x40
 
+#define MAX_PROG_SIZE 1000 // probably need to move this elsewhere, is greedy
+
+#define PROG_MODE false
+#define RUN_MODE true
+
+boolean mode = PROG_MODE;
+
+/*
+   The Registers
+*/
 long pc = 0; // program counter
+uint8_t program[MAX_PROG_SIZE];
 
 // map of ASCII values to 7-segment
 const uint8_t ss[128] = {
@@ -121,11 +132,19 @@ const uint8_t hexss[16] = {
 void setup()
 {
   // Serial.begin(9600);
+
+  // initialise TM1638
   pinMode(STROBE_IO, OUTPUT);
   pinMode(CLOCK_IO, OUTPUT);
   pinMode(DATA_IO, OUTPUT);
-  sendCommand(ACTIVATE);  // activate
+  sendCommand(ACTIVATE);
   reset();
+
+  // initialise registers
+  for (unsigned long i = 0; i < MAX_PROG_SIZE; i++) {
+    program[i] = 0; // NOP
+  }
+
 }
 
 void sendCommand(uint8_t value)
@@ -179,16 +198,71 @@ void loop()
 {
   displayText("Let's go!");
   // displayASCII(3, 't');
- delay(2000);
- reset();
+  delay(1000);
+  reset();
   while (1) {
-   
-    // pc = 254;
-    pc++;
-    if (pc > 0xFFFF) pc = 0;
+
+    handleButtons();
+    if (pc >= 65536) pc = 0; // max
+    displayMode();
     displayPC();
+    displayCode();
 
     delay(100);
+  }
+}
+
+unsigned long buttonMillis = 0; // time since last button press
+unsigned long buttonDelay = 200;
+uint8_t previousButtons = 0;
+uint8_t incdec = 1; // 1 for increment values, -1 for decrement
+
+void handleButtons() {
+  uint8_t buttons = readButtons();
+
+  // puts a delay on the buttons if they haven't changed so they don't run away
+  unsigned long currentMillis = millis();
+  if ((currentMillis - buttonMillis > buttonDelay) || (buttons != previousButtons)) {
+    buttonMillis = currentMillis;
+    previousButtons = buttons;
+
+    // do system buttons (4 & 5)
+    if (buttons & (1 << 4)) {
+      mode = !mode;
+    }
+
+    if (mode == PROG_MODE) {
+      if (buttons & (1 << 5)) {
+        incdec *= -1;
+      }
+    }
+
+    // do PC buttons (0-3) - inc/dec value as appropriate
+    if (buttons & (1 << 3)) {
+      pc += incdec;
+    }
+    if (buttons & (1 << 2)) {
+      pc += 16 * incdec;
+    }
+    if (buttons & (1 << 1)) {
+      pc += 256 * incdec;
+    }
+    if (buttons & (1 << 0)) {
+      pc += 4096 * incdec;
+    }
+
+    // do program buttons (6 & 7)- inc/dec value as appropriate, note there's no carry
+    uint8_t codeLow = program[pc] & 0xF; // mask
+    uint8_t codeHigh = (program[pc] & 0xF0) >> 4; // mask & shift
+    if (buttons & (1 << 6)) {
+      codeHigh++;
+      if (codeHigh >= 16) codeHigh = 0;
+    }
+    if (buttons & (1 << 7)) {
+      codeLow++;
+      if (codeLow >= 16) codeLow = 0;
+    }
+    program[pc] = codeHigh * 16 + codeLow;
   }
 }
 
@@ -200,6 +274,14 @@ void displayText(String text) {
       displayASCII(position, text[position]);
     }
   }
+}
+
+void displaySS(uint8_t position, uint8_t value) {
+  sendCommand(WRITE_LOC);
+  digitalWrite(STROBE_IO, LOW);
+  shiftOut(DATA_IO, CLOCK_IO, LSBFIRST, 0xC0 + (position << 1));
+  shiftOut(DATA_IO, CLOCK_IO, LSBFIRST, value);
+  digitalWrite(STROBE_IO, HIGH);
 }
 
 void displayASCII(uint8_t position, uint8_t ascii) {
@@ -229,7 +311,26 @@ void displayPC() {
     } else {
       displayHex(3 - i, 0);
     }
+  }
+}
 
+void displayCode() {
+  uint8_t codeLow = program[pc] & 0xF; // mask
+  uint8_t codeHigh = (program[pc] & 0xF0) >> 4; // mask & shift
+  displayHex(6, codeHigh);
+  displayHex(7, codeLow);
+}
+
+void displayMode() {
+  if (mode == PROG_MODE) {
+    displayASCII(4, 'P');
+    if (incdec == 1) {
+      displaySS(5, 1); // just the top segment
+    } else {
+      displaySS(5, 8); // just the top segment
+    }
+  } else {
+    displayASCII(4, 'R');
   }
 }
 

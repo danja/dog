@@ -14,12 +14,15 @@ Some novelty is offered by the hardware used is that it should be possible to in
 * 8-bit instructions
 * 8-bit data
 
-**Registers**
+### Registers
 
-Addressing will be handled primarily by a 16-bit Program Counter (PC).
+Operations will be carried out using the following registers:
 
-Operations will be carried out using 8-bit registers:
+**16-Bit**
+* Program Counter (PC) - steps through program
+* Pointer Register (PR) - an auxiliary register
 
+**8-Bit**
 * Accumulator - primary
 * X and Y - secondary
 * Status Register (SR) - system flags
@@ -73,7 +76,7 @@ At any time, pressing buttons 4 and 5 **together** will reset the PC to 0000.
 
 ### Program Mode
 
-Pressing the buttons 0-3, 6-7 will increment the value corresponding to that of the display above it. Programming is achieved by pressing button 3 to increment the PC (with overflow occurring, counting up on displays 0-2). Pressing button 7 will increment the value on display 7 (overflowing to display 6) providing the value at the given address.
+Pressing the buttons 0-3, 6-7 will increment the value corresponding to that of the display above it. Programming is achieved by pressing button 3 to increment the PC (with overflow occurring, counting up on displays 0-2). Pressing button 7 will increment the value on display 7 (*without* overflowing to display 6), ditto for button 6/display 6, together providing the value at the given address.
 
 Pressing button 4 again will switch to *Run* mode.
 
@@ -85,10 +88,36 @@ Alternately the program may be run in real time by pressing button 5. Pressing t
 
 ## Instruction Set
 
-*note to self* - things like LDA will have a version for each of the addressing modes, ~ 6, so it's probably an idea to hop 8 values between base versions
+*note to self* - things like LDA will have a version for each of the addressing modes, ~ 6, so it's probably an idea to hop 8 values between base versions...hmm, testing values for switch statements via masks?
+
+Using pointer register - probably mainly for table lookup, maybe for subroutine-like things too
+should support ld, st, inc & dec, swap with PC, conditional swap
 
 | Instruction | OpCode | Size | Operation | Description |
 | ----------- | ------ | ---- | --------- | ----------- |
 | NOP         | 00     | 1    | PC++      | No operation |
-| LDA #nn     | 10     | 3    | ACC <- nn | Load accumulator, immediate |
+| CLF         | 00     | 1    | PC++      | No operation |
+| LDA #nn     | 10     | 2    | ACC <- nn | Load accumulator, immediate |
+| LDA  nnnn     | 11     | 3    | ACC <- (nn) | Load accumulator from value at address |
+| STA  nnnn     | 18     | 3    | ACC -> (nn) | Store accumulator at given address |
+| JMP nnnn      | 20     | 3    | PC <- nn  | jump to given address |
+| JNZ nnnn      | 20     | 3    | PC <- nn  | jump to given address |
+| SPC nnnn      | 28     | 3    | PC -> (nn)  | store program counter value at address |
+| AND #nn        | 30     | 1    | Halt      | Stops program flow |
+| AND nnnn        | 30     | 1    | Halt      | Stops program flow |
+| OR #nn        | 30     | 1    | Halt      | Stops program flow |
+| OR nnnn        | 30     | 1    | Halt      | Stops program flow |
+| XOR #nn        | 30     | 1    | Halt      | Stops program flow |
+| XOR nnnn        | 30     | 1    | Halt      | Stops program flow |
+| ROL         | 30     | 1    | Halt      | Stops program flow |
+| ROR         | 30     | 1    | Halt      | Stops program flow |
+| ADD #nn         | FF     | 1    | Halt      | Stops program flow |
+| ADD nnnn         | FF     | 1    | Halt      | Stops program flow |
+| SUB #nn         | FF     | 1    | Halt      | Stops program flow |
+| SUB nn         | FF     | 1    | Halt      | Stops program flow |
+| CMP          | FF     | 1    | Halt      | Stops program flow |
+| HLT         | FF     | 1    | Halt      | Stops program flow |
+| HLT         | FF     | 1    | Halt      | Stops program flow |
+| HLT         | FF     | 1    | Halt      | Stops program flow |
+| HLT         | FF     | 1    | Halt      | Stops program flow |
 | HLT         | FF     | 1    | Halt      | Stops program flow |
