@@ -78,7 +78,9 @@ At any time, pressing buttons 4 and 5 **together** will reset the PC to 0000.
 
 Pressing the buttons 0-3, 6-7 will increment the value corresponding to that of the display above it. Programming is achieved by pressing button 3 to increment the PC (with overflow occurring, counting up on displays 0-2). Pressing button 7 will increment the value on display 7 (*without* overflowing to display 6), ditto for button 6/display 6, together providing the value at the given address.
 
-Pressing button 4 again will switch to **Run** mode.
+Pressing button 5 will switch the response from increment to decrement. The PC buttons/display *does* carry values and wrap at max and min (0000). The code buttons/display act independently to each other and don't wrap in the <0 direction.
+
+Pressing button 4 will switch to **Run** mode.
 
 ### Run Mode
 
@@ -121,3 +123,15 @@ should support ld, st, inc & dec, swap with PC, conditional swap
 | HLT         | FF     | 1    | Halt      | Stops program flow |
 | HLT         | FF     | 1    | Halt      | Stops program flow |
 | HLT         | FF     | 1    | Halt      | Stops program flow |
+
+----
+
+### See Also
+
+This blog post gave me enough of how-to on interfacing with the TM1638 to get started:
+
+https://blog.3d-logic.com/2015/01/10/using-a-tm1638-based-board-with-arduino/
+
+See also :
+
+http://obsolescence.wixsite.com/obsolescence/kim-uno-summary-c1uuh
