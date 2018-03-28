@@ -5,4 +5,7 @@ Playing with a cheapo TM1638 card driven by an Arduino Uno. Trying to put togeth
 
 If written up the [design/manual](https://github.com/danja/dog/blob/master/docs/overview.md) as far as instruction set (still a lot to be decided around there - will probably make most of that up as I go along).
 
-*Status* : UI, program input implemented.
+*Status*  
+2018-03-28 : refactored, TM1638 interface bits moved to a separate library - https://github.com/danja/TM1638lite
+
+2018-03-27 : UI, program input implemented.

@@ -1,14 +1,10 @@
-/*  Comms with TM1638
-    these are the ports without extra functions on the Uno
-*/
-#define STROBE_IO 4
-#define CLOCK_IO 7
-#define DATA_IO 8
+#include <TM1638lite.h>
 
-#define ACTIVATE 0x8f
-#define BUTTONS 0x42
-#define WRITE_LOC 0x44
-#define WRITE_INC 0x40
+/**  Comms with TM1638
+ *  arguments are the ports on the Uno
+ *  (I've gone for the ones without extra functions 
+ */
+TM1638lite tm(4, 7, 8);
 
 #define MAX_PROG_SIZE 1024 // probably need to move prog elsewhere, is greedy
 
@@ -17,192 +13,30 @@
 
 boolean mode = PROG_MODE;
 
-/*
-   The Registers
-*/
+/**
+ *The Registers
+ */
 long pc = 0; // program counter
 uint8_t program[MAX_PROG_SIZE]; // the code
 
 uint8_t status = 48; // just a vaguely sensible test pattern, LEDs over system displays only (4 & 5)
 
-
-// map of ASCII values to 7-segment
-const uint8_t ss[128] = {
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // padding for non-char ASCII
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x00, /* (space) */
-  0x86, /* ! */
-  0x22, /* " */
-  0x7E, /* # */
-  0x6D, /* $ */
-  0xD2, /* % */
-  0x46, /* & */
-  0x20, /* ' */
-  0x29, /* ( */
-  0x0B, /* ) */
-  0x21, /* * */
-  0x70, /* + */
-  0x10, /* , */
-  0x40, /* - */
-  0x80, /* . */
-  0x52, /* / */
-  0x3F, /* 0 */
-  0x06, /* 1 */
-  0x5B, /* 2 */
-  0x4F, /* 3 */
-  0x66, /* 4 */
-  0x6D, /* 5 */
-  0x7D, /* 6 */
-  0x07, /* 7 */
-  0x7F, /* 8 */
-  0x6F, /* 9 */
-  0x09, /* : */
-  0x0D, /* ; */
-  0x61, /* < */
-  0x48, /* = */
-  0x43, /* > */
-  0xD3, /* ? */
-  0x5F, /* @ */
-  0x77, /* A */
-  0x7C, /* B */
-  0x39, /* C */
-  0x5E, /* D */
-  0x79, /* E */
-  0x71, /* F */
-  0x3D, /* G */
-  0x76, /* H */
-  0x30, /* I */
-  0x1E, /* J */
-  0x75, /* K */
-  0x38, /* L */
-  0x15, /* M */
-  0x37, /* N */
-  0x3F, /* O */
-  0x73, /* P */
-  0x6B, /* Q */
-  0x33, /* R */
-  0x6D, /* S */
-  0x78, /* T */
-  0x3E, /* U */
-  0x3E, /* V */
-  0x2A, /* W */
-  0x76, /* X */
-  0x6E, /* Y */
-  0x5B, /* Z */
-  0x39, /* [ */
-  0x64, /* \ */
-  0x0F, /* ] */
-  0x23, /* ^ */
-  0x08, /* _ */
-  0x02, /* ` */
-  0x5F, /* a */
-  0x7C, /* b */
-  0x58, /* c */
-  0x5E, /* d */
-  0x7B, /* e */
-  0x71, /* f */
-  0x6F, /* g */
-  0x74, /* h */
-  0x10, /* i */
-  0x0C, /* j */
-  0x75, /* k */
-  0x30, /* l */
-  0x14, /* m */
-  0x54, /* n */
-  0x5C, /* o */
-  0x73, /* p */
-  0x67, /* q */
-  0x50, /* r */
-  0x6D, /* s */
-  0x78, /* t */
-  0x1C, /* u */
-  0x1C, /* v */
-  0x14, /* w */
-  0x76, /* x */
-  0x6E, /* y */
-  0x5B, /* z */
-  0x46, /* { */
-  0x30, /* | */
-  0x70, /* } */
-  0x01, /* ~ */
-  0x00, /* (del) */
-};
-
-const uint8_t hexss[16] = {
-  ss['0'], ss['1'], ss['2'], ss['3'], ss['4'], ss['5'], ss['6'], ss['7'], ss['8'], ss['9'], ss['A'], ss['b'], ss['C'], ss['d'], ss['E'], ss['F']
-};
-
 void setup()
 {
   // Serial.begin(9600);
-
-  // initialise TM1638
-  pinMode(STROBE_IO, OUTPUT);
-  pinMode(CLOCK_IO, OUTPUT);
-  pinMode(DATA_IO, OUTPUT);
-  sendCommand(ACTIVATE);
-  reset();
 
   // initialise registers
   for (unsigned long i = 0; i < MAX_PROG_SIZE; i++) {
     program[i] = 0; // NOP
   }
-
 }
 
-void sendCommand(uint8_t value)
-{
-  digitalWrite(STROBE_IO, LOW);
-  shiftOut(DATA_IO, CLOCK_IO, LSBFIRST, value);
-  digitalWrite(STROBE_IO, HIGH);
-}
-
-void reset()
-{
-  sendCommand(WRITE_INC); // set auto increment mode
-  digitalWrite(STROBE_IO, LOW);
-  shiftOut(DATA_IO, CLOCK_IO, LSBFIRST, 0xc0);   // set starting address to 0
-  for (uint8_t i = 0; i < 16; i++)
-  {
-    shiftOut(DATA_IO, CLOCK_IO, LSBFIRST, 0x00);
-  }
-  digitalWrite(STROBE_IO, HIGH);
-}
-
-uint8_t readButtons()
-{
-  uint8_t buttons = 0;
-  digitalWrite(STROBE_IO, LOW);
-  shiftOut(DATA_IO, CLOCK_IO, LSBFIRST, BUTTONS);
-  pinMode(DATA_IO, INPUT);
-
-  for (uint8_t i = 0; i < 4; i++)
-  {
-    uint8_t v = shiftIn(DATA_IO, CLOCK_IO, LSBFIRST) << i;
-    buttons |= v;
-  }
-
-  pinMode(DATA_IO, OUTPUT);
-  digitalWrite(STROBE_IO, HIGH);
-  return buttons;
-}
-
-void setLED(uint8_t position, uint8_t value)
-{
-  pinMode(DATA_IO, OUTPUT);
-  sendCommand(WRITE_LOC);
-  digitalWrite(STROBE_IO, LOW);
-  shiftOut(DATA_IO, CLOCK_IO, LSBFIRST, 0xC1 + (position << 1));
-  shiftOut(DATA_IO, CLOCK_IO, LSBFIRST, value);
-  digitalWrite(STROBE_IO, HIGH);
-}
 
 void loop()
 {
-  displayText("Let's go!");
-  // displayASCII(3, 't');
+  tm.displayText("DOG-1");
   delay(1000);
-  reset();
+  tm.reset();
   while (1) {
 
     handleButtons();
@@ -218,17 +52,17 @@ void loop()
 }
 
 /*
- * LEDs 
+ * LEDs
  */
  void showStatus() {
   uint8_t shifty = status;
-  
+
   for(uint8_t i=0; i<8;i++) {
-    setLED(i, shifty & 1);
+    tm.setLED(i, shifty & 1);
     shifty = shifty >> 1;
   }
  }
- 
+
 /*
  * Buttons
  */
@@ -240,7 +74,7 @@ uint8_t previousButtons = 0;
 uint8_t incdec = true; // true for increment, false for decrement
 
 void handleButtons() {
-  uint8_t buttons = readButtons();
+  uint8_t buttons = tm.readButtons();
 
   // puts a delay on the buttons if they haven't changed so they don't run away
   unsigned long currentMillis = millis();
@@ -334,41 +168,17 @@ void handleButtons() {
   }
 }
 
-void displayText(String text) {
-  uint8_t length = text.length();
 
-  for (uint8_t i = 0; i < length; i++) {
-    for (uint8_t position = 0; position < 8; position++) {
-      displayASCII(position, text[position]);
-    }
-  }
-}
-
-void displaySS(uint8_t position, uint8_t value) { // call 7-segment
-  sendCommand(WRITE_LOC);
-  digitalWrite(STROBE_IO, LOW);
-  shiftOut(DATA_IO, CLOCK_IO, LSBFIRST, 0xC0 + (position << 1));
-  shiftOut(DATA_IO, CLOCK_IO, LSBFIRST, value);
-  digitalWrite(STROBE_IO, HIGH);
-}
-
-void displayASCII(uint8_t position, uint8_t ascii) {
-  displaySS(position, ss[ascii]);
-}
-
-void displayHex(uint8_t position, uint8_t hex) {
-  displaySS(position, hexss[hex]);
-}
 
 void displayPC() {
   long pc_cut = pc;
   for (uint8_t i = 0; i < 4; i++) { // I tried decrementing, but got errors every time
 
     if (pc_cut > 0) {
-      displayHex(3 - i, pc_cut % 16);
+      tm.displayHex(3 - i, pc_cut % 16);
       pc_cut = pc_cut / 16;
     } else {
-      displayHex(3 - i, 0);
+      tm.displayHex(3 - i, 0);
     }
   }
 }
@@ -376,24 +186,20 @@ void displayPC() {
 void displayCode() {
   uint8_t codeLow = program[pc] & 0xF; // mask
   uint8_t codeHigh = (program[pc] & 0xF0) >> 4; // mask & shift
-  displayHex(6, codeHigh);
-  displayHex(7, codeLow);
+  tm.displayHex(6, codeHigh);
+  tm.displayHex(7, codeLow);
 }
 
 void displayMode() {
   if (mode == PROG_MODE) {
-    displayASCII(4, 'P');
+    tm.displayASCII(4, 'P');
     if (incdec) {
-      displaySS(5, 1); // just the top segment
+      tm.displaySS(5, 1); // just the top segment
     } else {
-      displaySS(5, 8); // just the top segment
+      tm.displaySS(5, 8); // just the top segment
     }
   } else {
-    displayASCII(4, 'R');
+    tm.displayASCII(4, 'R');
   }
 }
-
-
-
-
 
