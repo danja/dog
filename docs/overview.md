@@ -21,12 +21,11 @@ Operations will be carried out using the following registers:
 **16-Bit**
 
 -   Program Counter (PC) - steps through program
--   Pointer Register (PR) - an auxiliary register
+-   X Register (XR) - an auxiliary register
 
 **8-Bit**
 
 -   Accumulators A and B
--   X Register (XR) - aux index
 -   Status Register (SR) - system flags
 -   Stack Pointer (SP) - for remembering the origin the source of subroutine jumps
 
@@ -93,6 +92,12 @@ Initially the system will be halted at the current address. Pressing button 3 wi
 
 Alternately the program may be run in real time by pressing button 5. Pressing this button again will halt the program.
 
+The HALT opcode will terminate a program and wait for keyboard input before switching to Program mode and zeroing the program counter.
+
+#### Error Messages
+
+xxxxnoPE - non-existent operation at xxxx
+
 ## Instruction Set
 
 _note to self_ - things like LDA will have a version for each of the addressing modes, ~ 6, so it's probably an idea to hop 8 values between base versions...hmm, testing values for switch statements via masks?
@@ -108,12 +113,12 @@ Ok, save long list until later, start with a subset
 | CLS         | 01     | 1    | all   | clear flags               |
 |             |        |      |       |                 |
 | LDA #nn     | 10     | 2    |   -   | Load acc A, immediate            |
-| LDA  nnnn   | 11     | 3    |   -   | Load acc A from value at address |
-| STA  nnnn   | 12     | 3    |   -   | Store acc A at given address     |
+| LDA nnnn    | 11     | 3    |   -   | Load acc A from value at address |
+| STA nnnn    | 12     | 3    |   -   | Store acc A at given address     |
 |             |        |      |       |                 |
 | LDB #nn     | 18     | 2    |   -   | Load acc B, immediate            |
-| LDB  nnnn   | 19     | 3    |   -   | Load acc B from value at address |
-| STB  nnnn   | 20     | 3    |   -   | Store acc B at given address     |
+| LDB nnnn    | 19     | 3    |   -   | Load acc B from value at address |
+| STB nnnn    | 20     | 3    |   -   | Store acc B at given address     |
 |             |        |      |       |                 |
 | SPC nnnn    | 28     | 3    |   -   | store program counter value at address |
 | JMP nnnn    | 29     | 3    |   -   | jump to given address                  |
@@ -130,8 +135,8 @@ Ok, save long list until later, start with a subset
 | RRB         | 46     | 1    |   C   | rotate bits in acc B right + carry    |
 |             |        |      |       |                 |
 | ADD         | 50     | 1    |   C   | ADD acc A and acc B, , result in A      |
-| SUB         | 50     | 1    |   NZ  | subtract acc B from acc A, result in A   |
-| CMP         | 50     | 1    |   NZ  | subtract acc B from acc A, discard result |
+| SUB         | 51     | 1    |   NZ  | subtract acc B from acc A, result in A   |
+| CMP         | 52     | 1    |   NZ  | subtract acc B from acc A, discard result |
 
 ----
 
@@ -139,10 +144,8 @@ Ok, save long list until later, start with a subset
 | ----------- | ------ | ---- | -------------- | -------------------------------------- |
 | NOP         | 00     | 1    | PC++           | No operation                           |
 | CLF         | 00     | 1    | PC++           | No operation                           |
-
 | JMP nnnn    | 20     | 3    | PC &lt;- nn    | jump to given address                  |
 | JNZ nnnn    | 20     | 3    | PC &lt;- nn    | jump to given address                  |
-
 | AND #nn     | 30     | 1    | Halt           | Stops program flow                     |
 | AND nnnn    | 30     | 1    | Halt           | Stops program flow                     |
 | OR #nn      | 30     | 1    | Halt           | Stops program flow                     |

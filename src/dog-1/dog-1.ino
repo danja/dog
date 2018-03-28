@@ -1,28 +1,82 @@
 #include <TM1638lite.h>
 
 /**  Comms with TM1638
- *  arguments are the ports on the Uno
- *  (I've gone for the ones without extra functions 
- */
+    arguments are the ports on the Uno
+    (I've gone for the ones without extra functions
+*/
 TM1638lite tm(4, 7, 8);
 
 #define MAX_PROG_SIZE 1024 // probably need to move prog elsewhere, is greedy
+#define STACK_SIZE 128
 
 #define PROG_MODE false
 #define RUN_MODE true
+#define STEP false
+#define RUN true
+
+/*
+   Instruction Set
+*/
+#define NOP 0x00 // no operation
+#define CLRS 0x01 // clear status flags
+
+#define LDAi 0x10 // load accumulator A, immediate value
+#define LDAa 0x11 // load accumulator A, absolute ref'd address
+#define STAa 0x12 // store accumulator A, absolute ref'd address
+
+#define LDBi 0x18
+#define LDBa 0x19
+#define STBa 0x1A
+
+#define SPCa 0x28
+#define JMPa 0x19
+#define JNZa 0x1A
+
+#define AND 0x38
+#define OR  0x39
+#define XOR 0x3A
+#define NEGA 0x3B
+#define NEGB 0x3C
+#define ROLA 0x3D
+#define RORA 0x3E
+#define ROLB 0x3F
+#define RORB 0x40
+#define SWAP 0x41
+
+#define ADD 0x48
+#define SUB 0x49
+#define CMP 0x4A
+
+#define PUSHA 0x50
+#define POPA 0x51
+#define PUSHB 0x52
+#define POPB 0x53
+
+#define USE 0x80
+
+#define HALT 0xFF
 
 boolean mode = PROG_MODE;
+boolean runmode = STEP;
+
 
 /**
- *The Registers
- */
-long pc = 0; // program counter
+    ################# Storage ##################
+*/
 uint8_t program[MAX_PROG_SIZE]; // the code
+uint8_t stack[STACK_SIZE];
 
-uint8_t status = 48; // just a vaguely sensible test pattern, LEDs over system displays only (4 & 5)
+/**
+    ################# The Registers ##################
+*/
+unsigned int pc = 0; // program counter
+char accA = 0; // accumulator A, 8-bits, -128 to 127
+char accB = 0; // accumulator B, 8-bits, -128 to 127
+unsigned int xReg = 0; // index register, 16 bits, 0 to 65535
+uint8_t status = 48; // status register (flags), initialised with a vaguely helpful test pattern, LEDs over system displays only (4 & 5)
 
-void setup()
-{
+// SETUP ########################################################
+void setup() {
   // Serial.begin(9600);
 
   // initialise registers
@@ -31,9 +85,10 @@ void setup()
   }
 }
 
+long previousPC = 0;
 
-void loop()
-{
+// LOOP ########################################################
+void loop() {
   tm.displayText("DOG-1");
   delay(1000);
   tm.reset();
@@ -47,25 +102,95 @@ void loop()
     displayCode();
     showStatus();
 
+    if (mode == RUN_MODE) {
+      if (runmode == STEP) { // RUN-STEP
+
+        doOperation();
+      } else {
+
+      }
+
+    }
+
+    delay(100);
+  }
+}
+
+void doOperation() {
+  uint8_t op = program[pc];
+
+  switch (op) {
+
+    case NOP: // no operation
+      return;
+
+    case CLRS: // clear status flags
+      status = 0;
+      return;
+
+    case LDAi:
+      pc++;
+      accA = program[pc++];
+      return;
+
+    case LDAa:
+      pc++;
+      accA = program[readAbsoluteAddr()];
+      return;
+
+    case STAa:
+      pc++;
+      program[readAbsoluteAddr()] = accA;
+      return;
+
+
+
+    case HALT:
+      waitForButton();
+      mode = PROG_MODE;
+      pc = 0;
+      return;
+
+    default:
+      showError("noPE");
+  }
+}
+
+unsigned int readAbsoluteAddr() {
+  uint8_t lo = program[pc++];
+  uint8_t hi = program[pc++];
+  return (hi << 8) + lo;
+}
+
+void showError(String message) {
+  tm.displayText("    " + message);
+  displayPC();
+  waitForButton();
+  mode = PROG_MODE;
+}
+
+void waitForButton() {
+  delay(500); // dirty, allow time for button release
+  while (tm.readButtons() == 0) {
     delay(100);
   }
 }
 
 /*
- * LEDs
- */
- void showStatus() {
+   LEDs
+*/
+void showStatus() {
   uint8_t shifty = status;
 
-  for(uint8_t i=0; i<8;i++) {
+  for (uint8_t i = 0; i < 8; i++) {
     tm.setLED(i, shifty & 1);
     shifty = shifty >> 1;
   }
- }
+}
 
 /*
- * Buttons
- */
+   Buttons
+*/
 
 unsigned long buttonMillis = 0; // time since last button press
 unsigned long buttonDelay = 200;
