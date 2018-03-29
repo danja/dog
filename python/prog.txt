@@ -1,0 +1,8 @@
+INIT
+10 LDAi
+66 value
+12 STAa
+99 lo
+01 hi
+FF
+FF

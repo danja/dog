@@ -6,7 +6,7 @@
 */
 TM1638lite tm(4, 7, 8);
 
-#define MAX_PROG_SIZE 1024 // probably need to move prog elsewhere, is greedy
+#define MAX_PROG_SIZE 512 // probably need to move prog elsewhere, is greedy
 #define STACK_SIZE 128
 
 #define PROG_MODE false
@@ -14,24 +14,29 @@ TM1638lite tm(4, 7, 8);
 #define STEP false
 #define RUN true
 
-/*
-   Instruction Set
+/**
+   ###################### Instruction Set ##############################
 */
+// system stuff
 #define NOP 0x00 // no operation
 #define CLRS 0x01 // clear status flags
 
+// accumulator A
 #define LDAi 0x10 // load accumulator A, immediate value
 #define LDAa 0x11 // load accumulator A, absolute ref'd address
 #define STAa 0x12 // store accumulator A, absolute ref'd address
 
+// accumulator B
 #define LDBi 0x18
 #define LDBa 0x19
 #define STBa 0x1A
 
+// Pc-related, jumps etc
 #define SPCa 0x28
 #define JMPa 0x19
 #define JNZa 0x1A
 
+// logic ops
 #define AND 0x38
 #define OR  0x39
 #define XOR 0x3A
@@ -43,16 +48,20 @@ TM1638lite tm(4, 7, 8);
 #define RORB 0x40
 #define SWAP 0x41
 
+// arithmetic ops
 #define ADD 0x48
 #define SUB 0x49
 #define CMP 0x4A
 
+// stack-related
 #define PUSHA 0x50
 #define POPA 0x51
 #define PUSHB 0x52
 #define POPB 0x53
 
+// hardware-related
 #define USE 0x80
+#define UNUSE 0x81
 
 #define HALT 0xFF
 
@@ -77,11 +86,45 @@ uint8_t status = 48; // status register (flags), initialised with a vaguely help
 
 // SETUP ########################################################
 void setup() {
-  // Serial.begin(9600);
-
+  Serial.begin(9600);
   initRegisters();
-
 }
+
+// long previousPC = 0;
+
+boolean inData = false;
+
+// LOOP ########################################################
+void loop() {
+  tm.displayText("DOG-1");
+  delay(2000);
+  tm.reset();
+  while (1) {
+
+    handleButtons();
+    if (pc >= MAX_PROG_SIZE) pc = 0;
+    if (pc < 0) pc = MAX_PROG_SIZE - 1;
+
+display();
+
+    if (mode == RUN_MODE) {
+      if (runmode == STEP) { // RUN-STEP
+
+        doOperation();
+      } else {
+
+      }
+
+    }
+
+    delay(100);
+    if (Serial.available()) {
+      doSerialIn();
+    }
+  }
+}
+
+uint8_t ledStep = 0;
 
 void initRegisters() {
   pc = 0; // program counter
@@ -97,41 +140,67 @@ void initRegisters() {
     stack[i] = 0;
   }
   mode = PROG_MODE;
+  // misc clearing
+  ledStep = 0;
 }
 
-long previousPC = 0;
-
-// LOOP ########################################################
-void loop() {
-  tm.displayText("DOG-1");
-  delay(2000);
-  tm.reset();
-  while (1) {
-
-    handleButtons();
-    if (pc >= MAX_PROG_SIZE) pc = 0;
-    if (pc < 0) pc = MAX_PROG_SIZE - 1;
-    displayMode();
+void display(){
+      displayMode();
     displayPC();
     displayCode();
     showStatus();
+}
 
-    if (mode == RUN_MODE) {
-      if (runmode == STEP) { // RUN-STEP
+uint8_t inPointer = 0;
+uint8_t inBuffer[4] = {'.', '.', '.', '.'}; // to init
+uint8_t begin[4] = {'I', 'N', 'I', 'T'};
+uint8_t end[4] = {'F', 'F', 'F', 'F'}; // using HALT HALT opcodes so we don't have to worry about it going into program
 
-        doOperation();
-      } else {
+// INIT1066129901FFFF
 
-      }
-
+void doSerialIn() {
+  uint8_t inByte = (uint8_t *)Serial.read();
+  if (inPointer <= 4) { // first 5 bytes
+    inBuffer[inPointer++] = inByte;
+  } else {
+    for (uint8_t inside = 0; inside < 3; inside++) {
+      inBuffer[inside] = inBuffer[inside + 1]; // shift left
     }
+    inBuffer[3] = inByte; // add incoming byte to end of array
+    if (inData) {
+      program[pc++] = inByte;
+      stepLED();
+      Serial.write(inByte);
+    }
+  }
 
-    delay(100);
+  if (arrayMatches(4, inBuffer, begin)) {
+    Serial.write("\nGot BEGIN\n");
+    inData = true;
+   initRegisters(); // clear everything
+  }
+  if (arrayMatches(4, inBuffer, end)) {
+    Serial.write("\nGot END\n");
+    inData = false;
+    display();
   }
 }
 
+boolean arrayMatches(uint8_t size, uint8_t a[], uint8_t b[]) {
+  for (uint8_t i = 0; i < size; i++) {
+    if (a[i] != b[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+
+
+
 void doOperation() {
   uint8_t op = program[pc];
+  pc++;
 
   switch (op) {
 
@@ -143,21 +212,19 @@ void doOperation() {
       return;
 
     case LDAi:
-      pc++;
+      // pc++;
       accA = program[pc++];
       return;
 
     case LDAa:
-      pc++;
+      // pc++;
       accA = program[readAbsoluteAddr()];
       return;
 
     case STAa:
-      pc++;
+      // pc++;
       program[readAbsoluteAddr()] = accA;
       return;
-
-
 
     case HALT:
       waitForButton();
@@ -190,8 +257,8 @@ void waitForButton() {
   }
 }
 
-/*
-   LEDs
+/**
+   ##################### LEDs #####################################
 */
 void showStatus() {
   uint8_t shifty = status;
@@ -200,6 +267,17 @@ void showStatus() {
     tm.setLED(i, shifty & 1);
     shifty = shifty >> 1;
   }
+}
+
+
+
+void stepLED() {
+  for (uint8_t i = 0; i < 8; i++) {
+    tm.setLED(i, 0); // switch off
+    if (i == ledStep) tm.setLED(i, 1); // switch this one on
+  }
+  ledStep++;
+  if(ledStep == 8) ledStep = 0;
 }
 
 /**

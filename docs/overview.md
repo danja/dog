@@ -111,6 +111,8 @@ Ok, save long list until later, start with a subset...
 
 Canonical version is in the code!!
 
+IMPORTANT TODO : serial comms for save/load
+
 Using the display etc. and Arduino I/O from code will need some specialised opcodes.
 Maybe :
 USE <device id> // to decouple device from system
@@ -184,11 +186,15 @@ Interrupt-driven bits?
 * 16x16bit multiply
 * Pseudorandom number generator
 
+as in https://en.wikipedia.org/wiki/Linear-feedback_shift_register
+
 Games? Lunar Lander? noughts & crosses?
+Space Invaders!!!!!!
+
 
 Using Arduino I/O - digital thermometer? beepy machine?
 
-as in https://en.wikipedia.org/wiki/Linear-feedback_shift_register
+
 
 
 
@@ -196,8 +202,9 @@ as in https://en.wikipedia.org/wiki/Linear-feedback_shift_register
 
 This blog post gave me enough of how-to on interfacing with the TM1638 to get started:
 
-<https://blog.3d-logic.com/2015/01/10/using-a-tm1638-based-board-with-arduino/>
+[Using a TM1638-based board with Arduino](https://blog.3d-logic.com/2015/01/10/using-a-tm1638-based-board-with-arduino/)
 
 See also :
 
-<http://obsolescence.wixsite.com/obsolescence/kim-uno-summary-c1uuh>
+* [Retro Computing](http://retro.hansotten.nl/) - loads on single-board computers
+* [KIM Uno](http://obsolescence.wixsite.com/obsolescence/kim-uno-summary-c1uuh) - remake of a 6502 SBC on the Arduino
