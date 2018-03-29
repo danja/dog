@@ -81,6 +81,7 @@ uint8_t stack[STACK_SIZE];
 unsigned int pc = 0; // program counter
 char accA = 0; // accumulator A, 8-bits, -128 to 127
 char accB = 0; // accumulator B, 8-bits, -128 to 127
+uint8_t stackP = 0; // stack pointer, 8 bits, 0 to 255
 unsigned int xReg = 0; // index register, 16 bits, 0 to 65535  (or rather, MAX_PROG_SIZE?)
 uint8_t status = 48; // status register (flags), initialised with a vaguely helpful test pattern, LEDs over system displays only (4 & 5)
 
@@ -96,8 +97,7 @@ boolean inData = false;
 
 // LOOP ########################################################
 void loop() {
-  tm.displayText("DOG-1");
-  delay(2000);
+
   tm.reset();
   while (1) {
 
@@ -105,7 +105,7 @@ void loop() {
     if (pc >= MAX_PROG_SIZE) pc = 0;
     if (pc < 0) pc = MAX_PROG_SIZE - 1;
 
-display();
+    display();
 
     if (mode == RUN_MODE) {
       if (runmode == STEP) { // RUN-STEP
@@ -126,10 +126,16 @@ display();
 
 uint8_t ledStep = 0;
 
+/**
+   ################ Init Registers ###################
+*/
 void initRegisters() {
+  welcome();
+
   pc = 0; // program counter
   accA = 0; // accumulator A, 8-bits, -128 to 127
   accB = 0; // accumulator B, 8-bits, -128 to 127
+  stackP = 0; // stack pointer, 8 bits, 0 to 255
   xReg = 0; // index register, 16 bits, 0 to 65535 (or rather, MAX_PROG_SIZE?)
   status = 48; // status register (flags), initialised with a vaguely helpful test pattern, LEDs over system displays only (4 & 5)
 
@@ -139,64 +145,59 @@ void initRegisters() {
   for (unsigned long i = 0; i < STACK_SIZE; i++) {
     stack[i] = 0;
   }
+
+  // misc resetting
   mode = PROG_MODE;
-  // misc clearing
   ledStep = 0;
 }
 
-void display(){
-      displayMode();
-    displayPC();
-    displayCode();
-    showStatus();
+void display() {
+  displayMode();
+  displayPC();
+  displayCode();
+  showStatus();
 }
 
-uint8_t inPointer = 0;
-uint8_t inBuffer[4] = {'.', '.', '.', '.'}; // to init
-uint8_t begin[4] = {'I', 'N', 'I', 'T'};
-uint8_t end[4] = {'F', 'F', 'F', 'F'}; // using HALT HALT opcodes so we don't have to worry about it going into program
+void welcome() {
+  tm.displayText("DOG-1");
+  delay(1000);
+}
 
-// INIT1066129901FFFF
+
+// 1066129901FF
+// 10 66 12 99 01 FF
+
 
 void doSerialIn() {
-  uint8_t inByte = (uint8_t *)Serial.read();
-  if (inPointer <= 4) { // first 5 bytes
-    inBuffer[inPointer++] = inByte;
-  } else {
-    for (uint8_t inside = 0; inside < 3; inside++) {
-      inBuffer[inside] = inBuffer[inside + 1]; // shift left
-    }
-    inBuffer[3] = inByte; // add incoming byte to end of array
-    if (inData) {
-      program[pc++] = inByte;
-      stepLED();
-      Serial.write(inByte);
-    }
-  }
-
-  if (arrayMatches(4, inBuffer, begin)) {
-    Serial.write("\nGot BEGIN\n");
+  uint8_t hi = Serial.read();
+  uint8_t lo = Serial.read();
+  /*
+    if (hi == 'G' && lo == 'O') {
     inData = true;
-   initRegisters(); // clear everything
-  }
-  if (arrayMatches(4, inBuffer, end)) {
-    Serial.write("\nGot END\n");
-    inData = false;
+    uint8_t hi = Serial.read();
+    uint8_t lo = Serial.read();
+    }
+    if (!inData) return;
+  */
+  hi = hexCharToValue(hi);
+  lo = hexCharToValue(lo);
+  uint8_t code = hi*16 + lo;
+  program[pc++] = code;
+  stepLED();
+
+  if (code == 0xFF) {
+    // inData = false;
+    pc = 0;
     display();
   }
 }
 
-boolean arrayMatches(uint8_t size, uint8_t a[], uint8_t b[]) {
-  for (uint8_t i = 0; i < size; i++) {
-    if (a[i] != b[i]) {
-      return false;
-    }
-  }
-  return true;
+uint8_t hexCharToValue(uint8_t hexChar) {
+  if (hexChar >= 48 && hexChar <= 57) return hexChar - 48; // '0'...'9' -> 0...9
+  if (hexChar >= 65 && hexChar <= 70) return hexChar - 55; // 'A'...'F' -> 10...15
+  if (hexChar >= 97 && hexChar <= 102) return hexChar - 87; // 'a'...'f' -> 10...15
+  showError("Char");
 }
-
-
-
 
 void doOperation() {
   uint8_t op = program[pc];
@@ -277,7 +278,7 @@ void stepLED() {
     if (i == ledStep) tm.setLED(i, 1); // switch this one on
   }
   ledStep++;
-  if(ledStep == 8) ledStep = 0;
+  if (ledStep == 8) ledStep = 0;
 }
 
 /**

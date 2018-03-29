@@ -69,6 +69,8 @@ nnnn = 4 hex digits
 |         |     |     |     |     |     |     |     |     |
 | Buttons | o   | o   | o   | o   | o   | o   | o   | o   |
 
+*Note : on the board switches are labeled S1-S8, but starting at 0 is less confusing while coding*
+
 The LEDs will usually display the contents of the Status Register.
 
 Generally, the 7-Segment displays 0-3 will display the current value (address) of the Program Counter. Displays 6 and 7 showing the contents at that address. All in hexadecimal.
@@ -86,6 +88,20 @@ Pressing button 5 will switch the response from increment to decrement. The PC b
 
 Pressing button 4 will switch to **Run** mode.
 
+#### Double Key Presses
+
+0+1 Total Reset - wipe all memory
+
+4+5 Zero Program Counter
+
+TODO - show register contents
+
+0+4 Accumulator A
+0+5 Accumulator B
+0+6 Stack Pointer
+0+7 Index Register
+
+
 ### Run Mode
 
 Initially the system will be halted at the current address. Pressing button 3 will single-step through the program (pressing buttons 0-3 will cause the PC to skip to the corresponding address [running or skipping code in between? TBD]).
@@ -94,7 +110,7 @@ Alternately the program may be run in real time by pressing button 5. Pressing t
 
 The HALT opcode will terminate a program and wait for keyboard input before switching to Program mode and zeroing the program counter.
 
-Clicking the first (0) and last (7) buttons simultaneously will **wipe all memory**.
+Clicking the first (0) and second (1) buttons simultaneously will **wipe all memory**.
 
 #### Error Messages
 

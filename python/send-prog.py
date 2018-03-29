@@ -1,7 +1,10 @@
+import argparse
 import sys
 import os.path
 import serial
 import threading
+import time
+
 
 port = '/dev/ttyACM0'
 port1 = '/dev/ttyACM1'
@@ -11,25 +14,19 @@ if not os.path.exists(port):
 
 print port
 
-ser = serial.Serial(port, 9600)
+# sort out later
+# parser = argparse.ArgumentParser()
 
-line_number = 0
+print port
+
+
+ser = serial.Serial(port, 9600)
+print "Sleeping while Arduino reboots..."
+time.sleep(2) 
+
 
 with open("prog.txt", "r") as ins:
     for line in ins:
-        if line_number != 0:
-            data = line[:2] # first two chars on line
-        else:
-            data = line[:4].rstrip() # INIT
-        line_number = line_number + 1
-#        ser.write(data)
-        sys.stdout.write(bytearray(data))
-
-
-def read_from_port(ser):
-            print("test")
-            # reading = ser.readline().decode()
-            print ser.read()
-
-# thread = threading.Thread(target=read_from_port, args=(ser,))
-# thread.start()
+        data = line[:2].rstrip()
+        ser.write(data.encode('utf-8')) # first 2 chars encoded as bytes
+        sys.stdout.write(data)
