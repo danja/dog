@@ -27,11 +27,12 @@ Operations will be carried out using the following registers:
 
 -   Accumulators A and B
 -   Status Register (SR) - system flags
--   Stack Pointer (SP) - for remembering the origin the source of subroutine jumps
+-   Stack Pointer (SP) - for remembering the origin of subroutine jumps
 
 Note - I think I'll change this rather 6502-like setup after reading the 6800 datasheet. That has 2 accumulators and one X index register. Seems to make for a simpler but more versatile instruction set.
 
 Also quite interested in trying stack-oriented programming, 'check Here is a list of several stack manipulation operators, including SWAP' https://www.forth.com/starting-forth/2-stack-manipulation-operators-arithmetic/
+Also Stack Operations in 6800 doc.
 
 **Flags**
 
@@ -73,7 +74,6 @@ The LEDs will usually display the contents of the Status Register.
 Generally, the 7-Segment displays 0-3 will display the current value (address) of the Program Counter. Displays 6 and 7 showing the contents at that address. All in hexadecimal.
 
 The functionality of the I/O will depend on the system's mode : **Program** or **Run**. Display 4 shows the current mode, P or R.
-Display 5 is unused (TBD).
 
 Push-button 4 switches between these modes.
 At any time, pressing buttons 4 and 5 **together** will reset the PC to 0000.
@@ -94,6 +94,8 @@ Alternately the program may be run in real time by pressing button 5. Pressing t
 
 The HALT opcode will terminate a program and wait for keyboard input before switching to Program mode and zeroing the program counter.
 
+Clicking the first (0) and last (7) buttons simultaneously will **wipe all memory**.
+
 #### Error Messages
 
 xxxxnoPE - non-existent operation at xxxx
@@ -102,10 +104,19 @@ xxxxnoPE - non-existent operation at xxxx
 
 _note to self_ - things like LDA will have a version for each of the addressing modes, ~ 6, so it's probably an idea to hop 8 values between base versions...hmm, testing values for switch statements via masks?
 
-Using pointer register - probably mainly for table lookup, maybe for subroutine-like things too
+Using index register - probably mainly for table lookup, maybe for subroutine-like things too
 should support ld, st, inc & dec, swap with PC, conditional swap
 
-Ok, save long list until later, start with a subset
+Ok, save long list until later, start with a subset...
+
+Canonical version is in the code!!
+
+Using the display etc. and Arduino I/O from code will need some specialised opcodes.
+Maybe :
+USE <device id> // to decouple device from system
+UNUSE <device id>
+PEEK & POKE - yes!!!! To set/get values on/from devices.
+Interrupt-driven bits?
 
 | Instruction | OpCode | Size | Flags | Description                            |
 | ----------- | ------ | ---- | ----- | -------------------------------------- |
@@ -166,6 +177,20 @@ Ok, save long list until later, start with a subset
 | HLT         | FF     | 1    | Halt           | Stops program flow                     |
 
 * * *
+
+## Demo code
+
+* 16x16bit multiply
+* 16x16bit multiply
+* Pseudorandom number generator
+
+Games? Lunar Lander? noughts & crosses?
+
+Using Arduino I/O - digital thermometer? beepy machine?
+
+as in https://en.wikipedia.org/wiki/Linear-feedback_shift_register
+
+
 
 ### See Also
 

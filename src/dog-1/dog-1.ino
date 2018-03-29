@@ -72,17 +72,31 @@ uint8_t stack[STACK_SIZE];
 unsigned int pc = 0; // program counter
 char accA = 0; // accumulator A, 8-bits, -128 to 127
 char accB = 0; // accumulator B, 8-bits, -128 to 127
-unsigned int xReg = 0; // index register, 16 bits, 0 to 65535
+unsigned int xReg = 0; // index register, 16 bits, 0 to 65535  (or rather, MAX_PROG_SIZE?)
 uint8_t status = 48; // status register (flags), initialised with a vaguely helpful test pattern, LEDs over system displays only (4 & 5)
 
 // SETUP ########################################################
 void setup() {
   // Serial.begin(9600);
 
-  // initialise registers
+  initRegisters();
+
+}
+
+void initRegisters() {
+  pc = 0; // program counter
+  accA = 0; // accumulator A, 8-bits, -128 to 127
+  accB = 0; // accumulator B, 8-bits, -128 to 127
+  xReg = 0; // index register, 16 bits, 0 to 65535 (or rather, MAX_PROG_SIZE?)
+  status = 48; // status register (flags), initialised with a vaguely helpful test pattern, LEDs over system displays only (4 & 5)
+
   for (unsigned long i = 0; i < MAX_PROG_SIZE; i++) {
     program[i] = 0; // NOP
   }
+  for (unsigned long i = 0; i < STACK_SIZE; i++) {
+    stack[i] = 0;
+  }
+  mode = PROG_MODE;
 }
 
 long previousPC = 0;
@@ -90,7 +104,7 @@ long previousPC = 0;
 // LOOP ########################################################
 void loop() {
   tm.displayText("DOG-1");
-  delay(1000);
+  delay(2000);
   tm.reset();
   while (1) {
 
@@ -188,8 +202,8 @@ void showStatus() {
   }
 }
 
-/*
-   Buttons
+/**
+    ################## Buttons #####################################
 */
 
 unsigned long buttonMillis = 0; // time since last button press
@@ -207,8 +221,13 @@ void handleButtons() {
     buttonMillis = currentMillis;
     previousButtons = buttons;
 
-    // do system buttons (4 & 5)
+    // full-on reset & wipe
+    if ( (buttons & (1 << 0)) && (buttons & (1 << 7))) {
+      initRegisters();
+      return;
+    }
 
+    // do system buttons (4 & 5)
     // both together - reset pc
     if ( (buttons & (1 << 4)) && (buttons & (1 << 5))) {
       pc = 0;
