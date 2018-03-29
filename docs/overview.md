@@ -101,6 +101,22 @@ TODO - show register contents
 0+6 Stack Pointer
 0+7 Index Register
 
+#### Programming from PC
+
+There's a simple script, python/send-prog.py that will upload a DOG-1 program to the device of the USB/serial port.
+Hex values for the opcodes should be the first two characters on each line, everything else is ignored. Right now comms will be terminated on reaching an FF (HALT).
+
+Example prog.txt :
+
+10 LDAi
+66 value
+12 STAa
+99 lo
+01 hi
+FF
+
+(Only implemented enough for now to be able to test opcodes).
+
 
 ### Run Mode
 
