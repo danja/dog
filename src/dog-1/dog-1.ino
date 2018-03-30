@@ -1,13 +1,16 @@
 #include <TM1638lite.h>
 
-/**  Comms with TM1638
-    arguments are the ports on the Uno
-    (I've gone for the ones without extra functions
-*/
+/**  
+ *   Comms with TM1638
+ *   https://github.com/danja/TM1638lite
+ *   arguments are the ports on the Uno
+ *   (I've opted for the ones without extra functions
+ */
 TM1638lite tm(4, 7, 8);
 
 #define MAX_PROG_SIZE 512 // probably need to move prog elsewhere, is greedy
-#define STACK_SIZE 128
+#define PC_STACK_SIZE 64
+#define ALU_STACK_SIZE 64
 
 #define PROG_MODE false
 #define RUN_MODE true
@@ -32,9 +35,13 @@ TM1638lite tm(4, 7, 8);
 #define STBa 0x1A
 
 // Pc-related, jumps etc
-#define SPCa 0x28
-#define JMPa 0x19
-#define JNZa 0x1A
+#define SPCa 0x20
+#define JMPa 0x21
+#define JNZa 0x22
+#define SKIPX 0x23
+// PC stack
+#define PUSH 0x24
+#define POP 0x25
 
 // logic ops
 #define AND 0x38
@@ -48,16 +55,22 @@ TM1638lite tm(4, 7, 8);
 #define RORB 0x40
 #define SWAP 0x41
 
-// arithmetic ops
+// Accumulator arithmetic ops
 #define ADD 0x48
 #define SUB 0x49
 #define CMP 0x4A
 
-// stack-related
+// ALU stack-related
 #define PUSHA 0x50
 #define POPA 0x51
 #define PUSHB 0x52
 #define POPB 0x53
+// see https://www.forth.com/starting-forth/2-stack-manipulation-operators-arithmetic/
+#define SWAP 0x54
+#define DUP 0x55
+#define OVER 0x56
+#define ROT 0x57
+#define DROP 0x58
 
 // hardware-related
 #define USE 0x80
@@ -68,21 +81,24 @@ TM1638lite tm(4, 7, 8);
 boolean mode = PROG_MODE;
 boolean runmode = STEP;
 
-
 /**
-    ################# Storage ##################
-*/
+ *  ################# Storage ##################
+ */
 uint8_t program[MAX_PROG_SIZE]; // the code
-uint8_t stack[STACK_SIZE];
+uint8_t pcStack[PC_STACK_SIZE]; // PC/subroutine-oriented stack
+uint8_t aluStack[ALU_STACK_SIZE]; // experimental stack-oriented programming/maths stack
 
 /**
-    ################# The Registers ##################
-*/
+ *  ################# The Registers ##################
+ */
 unsigned int pc = 0; // program counter
+unsigned int xReg = 0; // index register, 16 bits, 0 to 65535  (or rather, MAX_PROG_SIZE?)
+unsigned int pcStackP = 0; // stack pointer, 16 bits
+
 char accA = 0; // accumulator A, 8-bits, -128 to 127
 char accB = 0; // accumulator B, 8-bits, -128 to 127
-uint8_t stackP = 0; // stack pointer, 8 bits, 0 to 255
-unsigned int xReg = 0; // index register, 16 bits, 0 to 65535  (or rather, MAX_PROG_SIZE?)
+uint8_t aluStackP = 0; // stack pointer, 8 bits, 0 to 255
+
 uint8_t status = 48; // status register (flags), initialised with a vaguely helpful test pattern, LEDs over system displays only (4 & 5)
 
 // SETUP ########################################################
@@ -91,17 +107,16 @@ void setup() {
   initRegisters();
 }
 
-// long previousPC = 0;
-
-boolean inData = false;
-
 // LOOP ########################################################
 void loop() {
 
-  tm.reset();
-  while (1) {
+  tm.reset(); // reset display hardware
+  
+  while (1) { // loop proper
 
     handleButtons();
+    
+    // trap overflows
     if (pc >= MAX_PROG_SIZE) pc = 0;
     if (pc < 0) pc = MAX_PROG_SIZE - 1;
 
@@ -127,23 +142,29 @@ void loop() {
 uint8_t ledStep = 0;
 
 /**
-   ################ Init Registers ###################
-*/
+ *  ################ Init Registers ###################
+ */
 void initRegisters() {
-  welcome();
+  welcome(); // display welcome message
 
   pc = 0; // program counter
-  accA = 0; // accumulator A, 8-bits, -128 to 127
+  accA = 0; // accumulator A, 8-bits, -128 to 127 // TODO CLEAR VALUES - only for testing
   accB = 0; // accumulator B, 8-bits, -128 to 127
-  stackP = 0; // stack pointer, 8 bits, 0 to 255
   xReg = 0; // index register, 16 bits, 0 to 65535 (or rather, MAX_PROG_SIZE?)
+  pcStackP = 0; // PC stack pointer, 16 bits
+  aluStackP = 0; // ALU stack pointer, 8 bits
   status = 48; // status register (flags), initialised with a vaguely helpful test pattern, LEDs over system displays only (4 & 5)
 
-  for (unsigned long i = 0; i < MAX_PROG_SIZE; i++) {
+  for (unsigned long i = 0; i < MAX_PROG_SIZE; i++) { // wipe all instructions
     program[i] = 0; // NOP
   }
-  for (unsigned long i = 0; i < STACK_SIZE; i++) {
-    stack[i] = 0;
+  
+  for (unsigned long i = 0; i < PC_STACK_SIZE; i++) { // wipe contents of PC stack
+    pcStack[i] = 0;
+  }
+
+  for (unsigned long i = 0; i < ALU_STACK_SIZE; i++) { // wipe contents of ALU stack
+    aluStack[i] = 0;
   }
 
   // misc resetting
@@ -167,26 +188,19 @@ void welcome() {
 // 1066129901FF
 // 10 66 12 99 01 FF
 
-
+/**
+ * ############################# Serial Loading of Programs ###############################
+ */
 void doSerialIn() {
   uint8_t hi = Serial.read();
   uint8_t lo = Serial.read();
-  /*
-    if (hi == 'G' && lo == 'O') {
-    inData = true;
-    uint8_t hi = Serial.read();
-    uint8_t lo = Serial.read();
-    }
-    if (!inData) return;
-  */
   hi = hexCharToValue(hi);
   lo = hexCharToValue(lo);
-  uint8_t code = hi*16 + lo;
+  uint8_t code = hi * 16 + lo;
   program[pc++] = code;
   stepLED();
 
   if (code == 0xFF) {
-    // inData = false;
     pc = 0;
     display();
   }
@@ -199,6 +213,9 @@ uint8_t hexCharToValue(uint8_t hexChar) {
   showError("Char");
 }
 
+/*
+   ##################################### Operations ########################
+*/
 void doOperation() {
   uint8_t op = program[pc];
   pc++;
@@ -244,23 +261,9 @@ unsigned int readAbsoluteAddr() {
   return (hi << 8) + lo;
 }
 
-void showError(String message) {
-  tm.displayText("    " + message);
-  displayPC();
-  waitForButton();
-  mode = PROG_MODE;
-}
-
-void waitForButton() {
-  delay(500); // dirty, allow time for button release
-  while (tm.readButtons() == 0) {
-    delay(100);
-  }
-}
-
 /**
-   ##################### LEDs #####################################
-*/
+ * ##################### LEDs #####################################
+ */
 void showStatus() {
   uint8_t shifty = status;
 
@@ -284,6 +287,12 @@ void stepLED() {
 /**
     ################## Buttons #####################################
 */
+void waitForButton() { // freezes display until button pressed
+  delay(500); // a bit dirty, allow time for button release
+  while (tm.readButtons() == 0) {
+    delay(100);
+  }
+}
 
 unsigned long buttonMillis = 0; // time since last button press
 unsigned long buttonDelay = 200;
@@ -300,19 +309,55 @@ void handleButtons() {
     buttonMillis = currentMillis;
     previousButtons = buttons;
 
-    // full-on reset & wipe
-    if ( (buttons & (1 << 0)) && (buttons & (1 << 7))) {
+// #################### DUAL BUTTONS ######################
+    // ################ System Buttons ###################
+
+    // 0 & 1 full-on reset & wipe
+    if ( (buttons & (1 << 0)) && (buttons & (1 << 1))) {
       initRegisters();
       return;
     }
 
-    // do system buttons (4 & 5)
-    // both together - reset pc
+    // 4 & 5 - reset pc
     if ( (buttons & (1 << 4)) && (buttons & (1 << 5))) {
       pc = 0;
       return;
     }
 
+    // ################ Display Register Buttons ###################
+
+    // 0 & 4 - display Accumulators A, B
+    if ( (buttons & (1 << 0)) && (buttons & (1 << 4))) {
+      displayHex(4, 2, accA);
+      displayHex(6, 2, accB);
+      waitForButton();
+      return;
+    }
+
+    // 0 & 5 - display Index Register
+    if ( (buttons & (1 << 0)) && (buttons & (1 << 5))) {
+      displayHex(4, 4, xReg);
+      waitForButton();
+      return;
+    }
+
+    // 0 & 6 - display PC Stack Pointer
+    if ( (buttons & (1 << 0)) && (buttons & (1 << 6))) {
+      displayHex(4, 4, pcStackP);
+      waitForButton();
+      return;
+    }
+
+    // 0 & 7 - display ALU Stack Pointer & status
+    if ( (buttons & (1 << 0)) && (buttons & (1 << 7))) {
+      displayHex(4, 2, aluStackP);
+      displayHex(6, 2, status);
+      waitForButton();
+      return;
+    }
+
+// #################### SINGLE BUTTON ######################
+    // ################ Mode Buttons ###################
 
     if (buttons & (1 << 4)) {
       mode = !mode;
@@ -325,6 +370,8 @@ void handleButtons() {
         return;
       }
     }
+    
+    // ################ Edit Buttons ###################
 
     // do PC buttons (0-3) - inc/dec value as appropriate, have removed wrap below zero, it was getting too confusing
     if (buttons & (1 << 3)) {
@@ -354,7 +401,7 @@ void handleButtons() {
       return;
     }
 
-    if (buttons & (1 << 0)) {
+    if (buttons & (1 << 0)) { // is out of reach of current size
       if (incdec) {
         pc += 4096;
       } else {
@@ -391,35 +438,49 @@ void handleButtons() {
   }
 }
 
+/**
+ * ######################## 7-Sement Display #######################
+ */
+void showError(String message) {
+  tm.displayText("    " + message);
+  displayPC();
+  waitForButton();
+  mode = PROG_MODE;
+}
 
+void displayCode() {
+  displayHex(6, 2, program[pc]);
+}
 
 void displayPC() {
-  long pc_cut = pc;
-  for (uint8_t i = 0; i < 4; i++) { // I tried decrementing, but got errors every time
+  displayHex(0, 4, pc);
+}
 
-    if (pc_cut > 0) {
-      tm.displayHex(3 - i, pc_cut % 16);
-      pc_cut = pc_cut / 16;
+/**
+ *  Display hex values
+ */
+void displayHex(uint8_t startDisplay, uint8_t nBytes, long data) {
+
+  for (uint8_t i = 0; i < nBytes; i++) { // I tried decrementing, but got errors every time
+    if (data > 0) {
+      tm.displayHex(nBytes - i + startDisplay - 1, data % 16);
+      data = data / 16;
     } else {
-      tm.displayHex(3 - i, 0);
+      tm.displayHex(nBytes - i + startDisplay - 1, 0);
     }
   }
 }
 
-void displayCode() {
-  uint8_t codeLow = program[pc] & 0xF; // mask
-  uint8_t codeHigh = (program[pc] & 0xF0) >> 4; // mask & shift
-  tm.displayHex(6, codeHigh);
-  tm.displayHex(7, codeLow);
-}
-
+/**
+ * System mode displays, 4 & 5
+ */
 void displayMode() {
   if (mode == PROG_MODE) {
     tm.displayASCII(4, 'P');
     if (incdec) {
       tm.displaySS(5, 1); // just the top segment
     } else {
-      tm.displaySS(5, 8); // just the top segment
+      tm.displaySS(5, 8); // just the tbottom segment
     }
   } else {
     tm.displayASCII(4, 'R');

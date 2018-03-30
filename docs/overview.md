@@ -14,6 +14,12 @@ Some novelty is offered by the hardware used is that it should be possible to in
 -   8-bit instructions
 -   8-bit data
 
+## Memory
+
+uint8_t program[512]; // the code
+uint8_t pcStack[64];
+uint8_t aluStack[64];
+
 ### Registers
 
 Operations will be carried out using the following registers:
@@ -22,12 +28,13 @@ Operations will be carried out using the following registers:
 
 -   Program Counter (PC) - steps through program
 -   X Register (XR) - an auxiliary register
+-   PC Stack Pointer (PCSP) - for remembering the origin of subroutine jumps
 
 **8-Bit**
 
 -   Accumulators A and B
 -   Status Register (SR) - system flags
--   Stack Pointer (SP) - for remembering the origin of subroutine jumps
+-   ALU Stack Pointer (ALUSP) - for remembering the origin of subroutine jumps
 
 Note - I think I'll change this rather 6502-like setup after reading the 6800 datasheet. That has 2 accumulators and one X index register. Seems to make for a simpler but more versatile instruction set.
 
@@ -42,6 +49,7 @@ Also Stack Operations in 6800 doc.
 | 1   | V    | Overflow | -                          |
 | 2   | Z    | Zero     | -                          |
 | 3   | C    | Carry    | -                          |
+| 7   | X    | Aux      | -                          |
 
 **Addressing Modes**
 
@@ -90,16 +98,12 @@ Pressing button 4 will switch to **Run** mode.
 
 #### Double Key Presses
 
-0+1 Total Reset - wipe all memory
-
-4+5 Zero Program Counter
-
-TODO - show register contents
-
-0+4 Accumulator A
-0+5 Accumulator B
-0+6 Stack Pointer
-0+7 Index Register
+* 0 & 1 - full-on reset & wipe
+* 4 & 5 - reset pc
+* 0 & 4 - display Accumulators A, B
+* 0 & 5 - display Index Register
+* 0 & 6 - display PC Stack Pointer
+* 0 & 7 - display ALU Stack Pointer & status
 
 #### Programming from PC
 
@@ -131,8 +135,23 @@ Clicking the first (0) and second (1) buttons simultaneously will **wipe all mem
 #### Error Messages
 
 xxxxnoPE - non-existent operation at xxxx
+xxxxChar - illegal character at xxxx (when uploading program)
 
 ## Instruction Set
+
+* System-related, starting with :
+00 NOP
+* Accumulator A
+* Accumulator B
+* PC-related, jumps etc. (including PC stack)
+* Logic ops
+* Accumulator arithmetic ops
+* ALU stack-related (I want to experiment stack-oriented programming/maths see https://www.forth.com/starting-forth/2-stack-manipulation-operators-arithmetic/ https://en.wikipedia.org/wiki/Stack-oriented_programming_language )
+* Hardware-related
+Finally:
+FF HALT
+
+
 
 _note to self_ - things like LDA will have a version for each of the addressing modes, ~ 6, so it's probably an idea to hop 8 values between base versions...hmm, testing values for switch statements via masks?
 
