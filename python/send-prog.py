@@ -22,7 +22,7 @@ print port
 
 ser = serial.Serial(port, 9600)
 print "Sleeping while Arduino reboots..."
-time.sleep(2) 
+time.sleep(5) 
 
 
 with open("prog.txt", "r") as ins:

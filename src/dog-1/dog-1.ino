@@ -27,12 +27,22 @@ TM1638lite tm(4, 7, 8);
 // accumulator A
 #define LDAi 0x10 // load accumulator A, immediate value
 #define LDAa 0x11 // load accumulator A, absolute ref'd address
-#define STAa 0x12 // store accumulator A, absolute ref'd address
+#define LDAx 0x12 // load accumulator A, indexed 
+#define LDAxx 0x13 // load accumulator A, doubly-index
+#define STAa 0x14 // store accumulator A, absolute ref'd address
+#define STAx 0x15 // store accumulator A, indexed 
+#define STAxx 0x16 // store accumulator A, doubly-indexed
 
 // accumulator B
-#define LDBi 0x18
-#define LDBa 0x19
-#define STBa 0x1A
+#define LDBi 0x18 // load accumulator B, immediate value
+#define LDBa 0x19 // load accumulator B, absolute ref'd address
+#define LDBx 0x1A // load accumulator B, indexed 
+#define LDBxx 0x1B // load accumulator B, doubly-index
+#define STBa 0x1C // store accumulator B, absolute ref'd address
+#define STBx 0x1D // store accumulator B, indexed 
+#define STBxx 0x1E // store accumulator B, doubly-indexed
+
+// IMPLEMENTED TO HERE
 
 // Pc-related, jumps etc
 #define SPCa 0x20
@@ -97,8 +107,7 @@ unsigned int pc = 0; // program counter
 unsigned int xReg = 0; // index register, 16 bits, 0 to 65535  (or rather, MAX_PROG_SIZE?)
 unsigned int pcStackP = 0; // stack pointer, 16 bits
 
-char accA = 0; // accumulator A, 8-bits, -128 to 127
-char accB = 0; // accumulator B, 8-bits, -128 to 127
+char acc[2] = {0, 0}; // accumulators A & , 8 - bits, -128 to 127
 uint8_t aluStackP = 0; // stack pointer, 8 bits, 0 to 255
 
 uint8_t status = 48; // status register (flags), initialised with a vaguely helpful test pattern, LEDs over system displays only (4 & 5)
@@ -109,8 +118,8 @@ uint8_t status = 48; // status register (flags), initialised with a vaguely help
 void initRegisters() {
 
   pc = 0; // program counter
-  accA = 0; // accumulator A, 8-bits, -128 to 127 // TODO CLEAR VALUES - only for testing
-  accB = 0; // accumulator B, 8-bits, -128 to 127
+  acc[0] = 0x12; // accumulator A, 8-bits, -128 to 127
+  acc[1] = 0xEF; // accumulator B, 8-bits, -128 to 127
   xReg = 0; // index register, 16 bits, 0 to 65535 (or rather, MAX_PROG_SIZE?)
   pcStackP = 0; // PC stack pointer, 16 bits
   aluStackP = 0; // ALU stack pointer, 8 bits
@@ -159,11 +168,9 @@ void loop() {
     if (mode == RUN_MODE) {
       if (runMode == STEP) { // RUN-STEP FIX ME!
         // waitForButton();
-         doOperation();
-         pc++;
+        doOperation();
+        pc++;
       }
-     
-      
     }
 
     delay(100);
@@ -178,9 +185,9 @@ void loop() {
 */
 void doOperation() {
   uint8_t op = program[pc];
-  
-// 1066129901FF
-// 10 66 12 99 01 FF
+
+  // 1066129901FF
+  // 10 66 12 99 01 FF
 
   switch (op) {
 
@@ -191,17 +198,61 @@ void doOperation() {
       status = 0;
       return;
 
-    case LDAi:
-      accA = program[++pc];
+    case LDAi:               // Load accumulator A immediate
+    acc[0] = program[++pc]; 
       return;
 
-    case LDAa:
- 
-      accA = program[readAbsoluteAddr()];
+    case LDAa:                            // Load accumulator A absolute
+      LDa[0];
       return;
 
-    case STAa:
-      program[readAbsoluteAddr()] = accA;
+    case LDAx:                            // Load accumulator A indexed (6502 calls it Indexed Indirect)
+      LDx(0);
+      return;
+
+
+    case LDAxx:                                      // Load accumulator A doubly-indexed (6502 calls it Indirect Indexed)
+      LDxx(0);
+      return;
+
+    case STAa:                            // Store accumulator A absolute
+      STa(0);
+      return;
+
+    case STAx:                            // Store accumulator A indexed (6502 calls it Indexed Indirect)
+      STx(0);
+      return;
+
+    case STAxx:                                      // Store accumulator A doubly-indexed (6502 calls it Indirect Indexed)
+      STxx(0);
+      return;
+
+    case LDBi:               // Load accumulator B immediate
+      LDi[1];
+      return;
+
+    case LDBa:                            // Load accumulator B absolute
+      LDa[1];
+      return;
+
+    case LDBx:                            // Load accumulator B indexed (6502 calls it Indexed Indirect)
+      LDx(1);
+      return;
+
+    case LDBxx:                                      // Load accumulator B doubly-indexed (6502 calls it Indirect Indexed)
+      LDxx(1);
+      return;
+
+    case STBa:                            // Store accumulator B absolute
+      STa(1);
+      return;
+
+    case STBx:                            // Store accumulator B indexed (6502 calls it Indexed Indirect)
+      STx(1);
+      return;
+
+    case STBxx:                                      // Store accumulator B doubly-indexed (6502 calls it Indirect Indexed)
+      STxx(1);
       return;
 
     case HALT:
@@ -212,14 +263,58 @@ void doOperation() {
       return;
 
     default:
-      showError("noPE");
+      showError("noPE"); 
   }
 }
 
+/**
+   ##################### Operation Helpers #####################
+*/
+/**
+   read two bytes from program (updating PC 2), combine & retuen
+*/
 unsigned int readAbsoluteAddr() {
   uint8_t lo = program[++pc];
   uint8_t hi = program[++pc];
   return (hi << 8) + lo;
+}
+
+void LDi(uint8_t id) {             // Load accumulator <id> immediate
+  acc[id] = program[++pc]; // move to next position in program, load into acc
+}
+
+void LDa(uint8_t id) { // Load accumulator <id> absolute
+  acc[id] = program[readAbsoluteAddr()]; // read next 2 bytes, lookup the value at that address
+}
+
+void LDx(uint8_t id) { // Load accumulator A indexed (6502 calls it Indexed Indirect)
+  unsigned long addr = xReg;          // start with the index register value
+  addr += program[++pc];              // add the next byte in the program
+  acc[id] = program[addr];               // look up the value at the total
+}
+
+void LDxx(uint8_t id) { // Load accumulator <id> doubly-indexed (6502 calls it Indirect Indexed)
+  unsigned long localIndex = readAbsoluteAddr(); // read next 2 bytes,
+  unsigned long addr = program[localIndex];      // lookup the value at that address
+  addr += xReg;                                   // add the index reg value
+  acc[0] = program[addr];                          // look up the value at the result
+}
+
+void STa(uint8_t id) {  // Store accumulator <id> absolute
+  program[readAbsoluteAddr()] = acc[id]; // read next 2 bytes, store acc value at that address
+}
+
+void STx(uint8_t id) { // Store accumulator <id> indexed (6502 calls it Indexed Indirect)
+  unsigned long addr = xReg;          // start with the index register value
+  addr += program[++pc];              // add the next byte in the program
+  program[addr] = acc[id];               // store acc value at the total
+}
+
+void STxx(uint8_t id) {  // Store accumulator A doubly-indexed (6502 calls it Indirect Indexed)
+  unsigned long localIndex = readAbsoluteAddr(); // read next 2 bytes,
+  unsigned long addr = program[localIndex];      // lookup the value at that address
+  addr += xReg;                                   // add the index reg value
+  program[addr] = acc[id];                          // store acc value at the result
 }
 
 void display() {
@@ -325,8 +420,8 @@ void handleButtons() {
 
     // 0 & 4 - display Accumulators A, B
     if ( (buttons & (1 << 0)) && (buttons & (1 << 4))) {
-      displayHex(4, 2, accA);
-      displayHex(6, 2, accB);
+      displayHex(4, 2, acc[0]);
+      displayHex(6, 2, acc[1]);
       waitForButton();
       return;
     }
