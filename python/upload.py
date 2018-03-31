@@ -17,12 +17,10 @@ print port
 # sort out later
 # parser = argparse.ArgumentParser()
 
-print port
-
 
 ser = serial.Serial(port, 9600)
 print "Sleeping while Arduino reboots..."
-time.sleep(5) 
+time.sleep(5)
 
 
 with open("prog.txt", "r") as ins:

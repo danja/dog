@@ -1,0 +1,6 @@
+10 LDAi
+66 valuetemp
+14 STAa
+07 lo // was 99
+00 hi // was 01
+FF

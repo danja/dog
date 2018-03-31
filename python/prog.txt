@@ -1,6 +1,6 @@
-10 LDAi
-66 value
-14 STAa
-99 lo
-01 hi
-FF
+10 LDAi 66 ; put 0x66 in acc A
+66
+14 STAa 07 00 ; store acc A at 0070
+07
+00
+FF HALT

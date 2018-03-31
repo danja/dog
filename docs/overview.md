@@ -105,19 +105,35 @@ Pressing button 4 will switch to **Run** mode.
 * 0 & 6 - display PC Stack Pointer
 * 0 & 7 - display ALU Stack Pointer & status
 
+* 0 & 3 - flip from single-step to free run
+
 #### Programming from PC
 
-There's a simple script, python/send-prog.py that will upload a DOG-1 program to the device of the USB/serial port.
+There are some utilities in the python directory.
+
+* **ass.py** : minimal assembler
+
+This takes quasi-assembly language and looks up the corresponding hex values, producing a version suitable for uploading. The values are taken directly from definitions in DOG-!'s source code right now, so I can change things around without breaking anything.
+
+Example assembly :
+
+LDAi 66 ; put 0x66 in acc A
+STAa 07 00 ; store acc A at 0070
+HALT
+
+* **upload.py**
+
+Will upload a DOG-1 program to the device of the USB/serial port.
 Hex values for the opcodes should be the first two characters on each line, everything else is ignored. Right now comms will be terminated on reaching an FF (HALT).
 
-Example prog.txt :
+Example program for upload :
 
-10 LDAi
-66 value
-12 STAa
-99 lo
-01 hi
-FF
+10 LDAi 66 ; put 0x66 in acc A
+66
+14 STAa 07 00 ; store acc A at 0070
+07
+00
+FF HALT
 
 (Only implemented enough for now to be able to test opcodes).
 
@@ -130,7 +146,6 @@ Alternately the program may be run in real time by pressing button 5. Pressing t
 
 The HALT opcode will terminate a program and wait for keyboard input before switching to Program mode and zeroing the program counter.
 
-Clicking the first (0) and second (1) buttons simultaneously will **wipe all memory**.
 
 #### Error Messages
 

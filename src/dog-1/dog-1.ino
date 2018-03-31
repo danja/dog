@@ -18,8 +18,17 @@ TM1638lite tm(4, 7, 8);
 #define RUN true
 
 /**
+   ###################### Flags ##############################
+*/
+#define NEGATIVE 1
+#define OVERFLOW 2
+#define ZERO 4
+#define CARRY 8
+
+/**
    ###################### Instruction Set ##############################
 */
+// START OPCODES # leave in place, used by ass.py
 // system stuff
 #define NOP 0x00 // no operation
 #define CLRS 0x01 // clear status flags
@@ -42,51 +51,68 @@ TM1638lite tm(4, 7, 8);
 #define STBx 0x1D // store accumulator B, indexed 
 #define STBxx 0x1E // store accumulator B, doubly-indexed
 
-// IMPLEMENTED TO HERE
-
-// Pc-related, jumps etc
-#define SPCa 0x20
-#define JMPa 0x21
-#define JNZa 0x22
-#define SKIPX 0x23
-// PC stack
-#define PUSH 0x24
-#define POP 0x25
-
 // logic ops
-#define AND 0x38
-#define OR  0x39
-#define XOR 0x3A
-#define NEGA 0x3B
-#define NEGB 0x3C
-#define ROLA 0x3D
-#define RORA 0x3E
-#define ROLB 0x3F
-#define RORB 0x40
-#define SWAP 0x41
+#define AND 0x20
+#define OR 0x21
+#define XOR 0x22
+#define COMA 0x23
+#define COMB 0x24
+#define ROLA 0x25
+#define RORA 0x26
+#define ROLB 0x27
+#define RORB 0x28
+#define SWAP 0x29  // swap values between accumulator A & B
 
-// Accumulator arithmetic ops
-#define ADD 0x48
-#define SUB 0x49
-#define CMP 0x4A
+// status register - flag ops
+#define CLRS 0x30 // clear status
+#define SETS 0x31 // set status
+#define SETC 0x32 // set carry
+#define CLC 0x33 // clear carry 
+#define CLV 0x34 // clear overflow
 
-// ALU stack-related
-#define PUSHA 0x50
-#define POPA 0x51
-#define PUSHB 0x52
-#define POPB 0x53
+// ALU Stack-related
+#define PUSHA 0x40
+#define POPA 0x41
+#define PUSHB 0x42
+#define POPB 0x43
 // see https://www.forth.com/starting-forth/2-stack-manipulation-operators-arithmetic/
-#define SWAP 0x54
-#define DUP 0x55
-#define OVER 0x56
-#define ROT 0x57
-#define DROP 0x58
+#define SWAPS 0x44
+#define DUP 0x45
+#define OVER 0x46
+#define ROT 0x47
+#define DROP 0x48
+#define TUCK 0x49
 
-// hardware-related
-#define USE 0x80
-#define UNUSE 0x81
+// IMPLEMENTED TO HERE
+/*
+  // Pc-related, jumps etc
+  #define SPCa 0x20
+  #define JMPa 0x21
+  #define JMPr 0x22
+  #define JNZa 0x23
+  // PC stack
+  #define PUSH 0x25
+  #define POP 0x26
+
+  // Accumulator arithmetic ops
+  #define ADDA 0x48
+  #define SUBA 0x49
+  #define CMPA 0x4A
+
+  // hardware-related
+  #define USE 0x80
+  #define UNUSE 0x81
+*/
+
+//
+
+// DOG-1 specific, for testing
+#define OK 0xFD
+#define ERR 0xFE
 
 #define HALT 0xFF
+
+// END OPCODES # leave in place, used by ass.py
 
 boolean mode = PROG_MODE;
 boolean runMode = STEP;
@@ -103,14 +129,14 @@ uint8_t aluStack[ALU_STACK_SIZE]; // experimental stack-oriented programming/mat
 /**
     ################# The Registers ##################
 */
-unsigned int pc = 0; // program counter
-unsigned int xReg = 0; // index register, 16 bits, 0 to 65535  (or rather, MAX_PROG_SIZE?)
-unsigned int pcStackP = 0; // stack pointer, 16 bits
+unsigned int pc; // program counter
+unsigned int xReg; // index register, 16 bits, 0 to 65535  (or rather, MAX_PROG_SIZE?)
+unsigned int pcStackP; // stack pointer, 16 bits
 
-char acc[2] = {0, 0}; // accumulators A & , 8 - bits, -128 to 127
-uint8_t aluStackP = 0; // stack pointer, 8 bits, 0 to 255
+char acc[2]; // accumulators A & , 8 - bits, -128 to 127
+uint8_t aluStackP; // stack pointer, 8 bits, 0 to 255
 
-uint8_t status = 48; // status register (flags), initialised with a vaguely helpful test pattern, LEDs over system displays only (4 & 5)
+uint8_t status; // status register (flags), initialised with a vaguely helpful test pattern, LEDs over system displays only (4 & 5)
 
 /**
     ################ Init Registers ###################
@@ -118,12 +144,12 @@ uint8_t status = 48; // status register (flags), initialised with a vaguely help
 void initRegisters() {
 
   pc = 0; // program counter
-  acc[0] = 0x12; // accumulator A, 8-bits, -128 to 127
-  acc[1] = 0xEF; // accumulator B, 8-bits, -128 to 127
-  xReg = 0; // index register, 16 bits, 0 to 65535 (or rather, MAX_PROG_SIZE?)
+  acc[0] = 0x12; // accumulator A, 8-bits
+  acc[1] = 0xEF; // accumulator B, 8-bits
+  xReg = 0; // index register, 16 bits
   pcStackP = 0; // PC stack pointer, 16 bits
   aluStackP = 0; // ALU stack pointer, 8 bits
-  status = 48; // status register (flags), initialised with a vaguely helpful test pattern, LEDs over system displays only (4 & 5)
+  status = 0x30; // status register (flags), initialised with a vaguely helpful test pattern, LEDs over system displays only (4 & 5)
 
   for (unsigned long i = 0; i < MAX_PROG_SIZE; i++) { // wipe all instructions
     program[i] = 0; // NOP
@@ -142,15 +168,24 @@ void initRegisters() {
   ledStep = 0;
 }
 
+void welcome() {
+  tm.displayText("DOG-1");
+  delay(1000);
+}
 
-// SETUP ########################################################
+
+/**
+   ######################## SETUP ################################
+*/
 void setup() {
   Serial.begin(9600);
   welcome(); // display welcome message
   initRegisters();
 }
 
-// LOOP ########################################################
+/**
+   ########################  LOOP #################################
+*/
 void loop() {
 
   tm.reset(); // reset display hardware
@@ -168,9 +203,10 @@ void loop() {
     if (mode == RUN_MODE) {
       if (runMode == STEP) { // RUN-STEP FIX ME!
         // waitForButton();
-        doOperation();
-        pc++;
+
       }
+      doOperation();
+      pc++;
     }
 
     delay(100);
@@ -189,30 +225,35 @@ void doOperation() {
   // 1066129901FF
   // 10 66 12 99 01 FF
 
+  uint8_t temp;
+
   switch (op) {
 
     case NOP: // no operation
       return;
 
-    case CLRS: // clear status flags
-      status = 0;
-      return;
+    // ############### accumulator A load and store
 
     case LDAi:               // Load accumulator A immediate
-    acc[0] = program[++pc]; 
+      LDi(0);
+      flashMessage("LDAi");
+      flashMessage(acc[0]);
       return;
 
     case LDAa:                            // Load accumulator A absolute
       LDa[0];
+      showError("tESt");
       return;
 
     case LDAx:                            // Load accumulator A indexed (6502 calls it Indexed Indirect)
       LDx(0);
+      showError("tESt");
       return;
 
 
     case LDAxx:                                      // Load accumulator A doubly-indexed (6502 calls it Indirect Indexed)
       LDxx(0);
+      showError("tESt");
       return;
 
     case STAa:                            // Store accumulator A absolute
@@ -221,39 +262,204 @@ void doOperation() {
 
     case STAx:                            // Store accumulator A indexed (6502 calls it Indexed Indirect)
       STx(0);
+      showError("tESt");
       return;
 
     case STAxx:                                      // Store accumulator A doubly-indexed (6502 calls it Indirect Indexed)
       STxx(0);
+      showError("tESt");
       return;
+
+    // ############### accumulator B load and store
 
     case LDBi:               // Load accumulator B immediate
       LDi[1];
+      showError("tESt");
       return;
 
     case LDBa:                            // Load accumulator B absolute
       LDa[1];
+      showError("tESt");
       return;
 
     case LDBx:                            // Load accumulator B indexed (6502 calls it Indexed Indirect)
       LDx(1);
+      showError("tESt");
       return;
 
     case LDBxx:                                      // Load accumulator B doubly-indexed (6502 calls it Indirect Indexed)
       LDxx(1);
+      showError("tESt");
       return;
 
     case STBa:                            // Store accumulator B absolute
       STa(1);
+      showError("tESt");
       return;
 
     case STBx:                            // Store accumulator B indexed (6502 calls it Indexed Indirect)
       STx(1);
+      showError("tESt");
       return;
 
     case STBxx:                                      // Store accumulator B doubly-indexed (6502 calls it Indirect Indexed)
       STxx(1);
+      showError("tESt");
       return;
+
+    // ############### logical operators
+
+    case AND: // bitwise AND of accumulators A & B, result in A
+      acc[0] = acc[0] & acc[1];
+      showError("tESt");
+      return;
+
+    case OR: // bitwise OR of accumulators A & B, result in A
+      acc[0] = acc[0] | acc[1];
+      showError("tESt");
+      return;
+
+    case XOR: // bitwise XOR of accumulators A & B, result in A
+      acc[0] = acc[0] ^ acc[1];
+      showError("tESt");
+      return;
+
+    case COMA: // bitwise complement, accumulator A
+      acc[0] = ~acc[0];
+      showError("tESt");
+      return;
+
+    case COMB: // bitwise complement, accumulator B
+      acc[1] = ~acc[1];
+      showError("tESt");
+      return;
+
+    case ROLA: // rotate left accumulator A
+      ROL(0);
+      showError("tESt");
+      return;
+
+    case RORA: // rotate right accumulator A
+      ROR(0);
+      showError("tESt");
+      return;
+
+    case ROLB:  // rotate left accumulator B
+      ROL(1);
+      showError("tESt");
+      return;
+
+    case RORB: // rotate right accumulator B
+      ROR(1);
+      showError("tESt");
+      return;
+
+    case SWAP: // swap values between accumulator A & B
+      temp = acc[0];
+      acc[0] = acc[1];
+      acc[1] = temp;
+      showError("tESt");
+      return;
+
+    // ############# status flag ops
+
+    // 76543210
+    // ----CZVN
+
+    case CLRS: // clear status flags
+      status = 0;
+      showError("tESt");
+      return;
+
+    case SETS: // set status (immediate)
+      status = program[++pc];
+      showError("tESt");
+      return;
+
+    case SETC: // set carry
+      status = status | CARRY; // OR with 1000
+      showError("tESt");
+      return;
+
+    case CLC: // clear carry
+      status = status & !CARRY; // AND with 0111
+      showError("tESt");
+      return;
+
+    case CLV: // clear overflow
+      status = status & !OVERFLOW; // OR with 1101
+      showError("tESt");
+      return;
+
+    // ############# ALU stack-related
+
+    case PUSHA: // push value in accumulator A to top of ALU Stack
+      pushALU(0);
+      showError("tESt");
+      return;
+
+    case POPA: // pop value from top of ALU Stack into accumulator A
+      popALU(0);
+      showError("tESt");
+      return;
+
+    case PUSHB: // push value in accumulator B to top of ALU Stack
+      pushALU(1);
+      showError("tESt");
+      return;
+
+    case POPB: // pop value from top of ALU Stack into accumulator B
+      popALU(1);
+      showError("tESt");
+      return;
+
+    case SWAPS: // a b c => b a c
+      swapALU();
+      showError("tESt");
+      return;
+
+    case DUP: // a b c => a a b c
+      dupALU();
+      showError("tESt");
+      return;
+
+    case OVER: // a b c => b a b c
+      if (aluStackP >= ALU_STACK_SIZE - 1) {
+        showError("OvEr");
+      }
+      aluStackP++;
+      aluStack[aluStackP] = aluStack[aluStackP - 2];
+      showError("tESt");
+      return;
+
+    case ROT: //  a b c => c a b
+      temp = aluStack[aluStackP];
+      aluStack[aluStackP] = aluStack[aluStackP - 2];
+      aluStack[aluStackP - 2] = aluStack[aluStackP - 1];
+      aluStack[aluStackP - 1] = temp;
+      showError("tESt");
+      return;
+
+    case DROP: // a b c => b c
+      if (aluStackP <= 0) {
+        showError("Undr");
+      }
+      aluStackP--;
+      showError("tESt");
+      return;
+
+    case TUCK: // a b c => a b a c
+      swapALU();
+      dupALU();
+      showError("tESt");
+      return;
+
+
+    // see https://www.forth.com/starting-forth/2-stack-manipulation-operators-arithmetic/
+    // PICK & ROLL
+    // http://galileo.phys.virginia.edu/classes/551.jvn.fall01/primer.htm#stacks
+
+    // ## and finally... ##
 
     case HALT:
       waitForButton();
@@ -263,7 +469,7 @@ void doOperation() {
       return;
 
     default:
-      showError("noPE"); 
+      showError("noPE");
   }
 }
 
@@ -317,16 +523,56 @@ void STxx(uint8_t id) {  // Store accumulator A doubly-indexed (6502 calls it In
   program[addr] = acc[id];                          // store acc value at the result
 }
 
+void ROL(uint8_t id) { // rotate left accumulator <id>
+  uint8_t temp = acc[id] & 128; // get 7th bit
+  acc[id] = acc[id] << 1; // shift left
+  acc[id] = acc[id] + (status & CARRY); // load carry flag to bit 0
+  status = status | temp; // put previous 7th bit in carry flag
+}
+
+void ROR(uint8_t id) { // rotate left accumulator <id>
+  uint8_t temp = acc[id] & 1; // get 0th bit
+  acc[id] = acc[id] >> 1; // shift right
+  acc[id] = acc[id] + 128 * (status & CARRY); // load carry flag to bit 7
+  status = status | temp; // put previous 7th bit in carry flag
+}
+
+void pushALU(uint8_t id) {
+  if (aluStackP >= ALU_STACK_SIZE - 1) {
+    showError("OvEr");
+  }
+  aluStack[aluStackP++] = acc[id];
+}
+
+void popALU(uint8_t id) {
+  if (aluStackP <= 0) {
+    showError("Undr");
+  }
+  acc[id] = aluStack[--aluStackP];
+}
+
+void swapALU() {
+  uint8_t temp = aluStack[aluStackP - 1];
+  aluStack[aluStackP - 1] = aluStack[aluStackP];
+  aluStack[aluStackP] = temp;
+}
+
+void dupALU() {
+  if (aluStackP >= ALU_STACK_SIZE - 1) {
+    showError("OvEr");
+  }
+  aluStackP++;
+  aluStack[aluStackP] = aluStack[aluStackP - 1];
+}
+
+/**
+   ###################
+*/
 void display() {
   displayMode();
   displayPC();
   displayCode();
   showStatus();
-}
-
-void welcome() {
-  tm.displayText("DOG-1");
-  delay(1000);
 }
 
 /**
@@ -360,7 +606,6 @@ uint8_t hexCharToValue(uint8_t hexChar) {
 */
 void showStatus() {
   uint8_t shifty = status;
-
   for (uint8_t i = 0; i < 8; i++) {
     tm.setLED(i, shifty & 1);
     shifty = shifty >> 1;
@@ -450,7 +695,7 @@ void handleButtons() {
 
     // ################ Mode Buttons ###################
 
-    // 0 & 3 - display PC Stack Pointer
+    // 0 & 3 - flip between single-step & free run
     if ( (buttons & (1 << 0)) && (buttons & (1 << 3)) && mode == RUN_MODE) {
       runMode == RUN;
       return;
@@ -468,6 +713,10 @@ void handleButtons() {
         return;
       }
     }
+
+   // if (mode == RUN_MODE) {
+   //   return;
+    //}
 
     // ################ Edit Buttons ###################
 
@@ -508,9 +757,13 @@ void handleButtons() {
       return;
     }
 
-    // do code buttons (6 & 7)- inc/dec value as appropriate, note there's no carry or wrap
+    /**
+       ################################# do code buttons ############
+       (6 & 7)- inc/dec value as appropriate, note there's no carry or wrap
+    */
     uint8_t codeLow = program[pc] & 0xF; // mask
     uint8_t codeHigh = (program[pc] & 0xF0) >> 4; // mask & shift
+
     if (buttons & (1 << 6)) {
       if (incdec) {
         codeHigh++;
@@ -544,6 +797,17 @@ void showError(String message) {
   displayPC();
   waitForButton();
   mode = PROG_MODE;
+}
+
+void flashMessage(String message){
+    tm.displayText(message);
+    delay(1000);
+}
+
+
+void flashMessage(uint8_t value){
+ displayHex(4,2, value);
+ delay(1000);
 }
 
 void displayCode() {
@@ -580,8 +844,13 @@ void displayMode() {
     } else {
       tm.displaySS(5, 8); // just the tbottom segment
     }
-  } else {
+  } else { // RUN_MODE
     tm.displayASCII(4, 'R');
+    if(runMode == RUN) {
+       tm.displayASCII(5, 'R'); // Run
+    } else {
+       tm.displayASCII(5, 'S'); // Step
+    }
   }
 }
 

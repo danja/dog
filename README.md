@@ -7,7 +7,9 @@ I've written up the [design/manual](https://github.com/danja/dog/blob/master/doc
 
 ### Status  
 
-**2018-03-30** : now implemented 7 instructions for each of acc A & B (refactored to use same routines)
+**2018-03-31** : up to about 40 opcodes (untested). Made a minimal assembler in Python, should be enough for testing. (It takes opcode/hex value map directly from defines in the C source, so will be in sync).
+
+2018-03-30 : now implemented 7 instructions for each of acc A & B (refactored to use same routines)
 
 2018-03-30 : some tidying/refactoring. Decided to create a dedicated 8-bit stack (ALU Stack) for experimenting with stack-oriented programming and maths. Added controls (two-button) to allow display of register contents.
 (see https://en.wikipedia.org/wiki/Stack-oriented_programming_language https://www.forth.com/starting-forth/2-stack-manipulation-operators-arithmetic/ )
