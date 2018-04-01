@@ -10,7 +10,7 @@ TM1638lite tm(4, 7, 8);
 
 #define MAX_PROG_SIZE 512 // probably need to move prog elsewhere, is greedy
 #define PC_STACK_SIZE 64
-#define ALU_STACK_SIZE 64
+#define X_STACK_SIZE 64
 
 #define PROG_MODE false
 #define RUN_MODE true
@@ -20,15 +20,16 @@ TM1638lite tm(4, 7, 8);
 /**
    ###################### Flags ##############################
 */
-#define NEGATIVE 1
-#define OVERFLOW 2
-#define ZERO 4
-#define CARRY 8
+#define NEGATIVE 0
+#define OVERFLOW 1
+#define ZERO 2
+#define CARRY 3
 
 /**
    ###################### Instruction Set ##############################
 */
-// START OPCODES # leave in place, used by ass.py
+// START OPCODES # leave this line in place, used by ass.py
+
 // system stuff
 #define NOP 0x00 // no operation
 #define CLRS 0x01 // clear status flags
@@ -69,12 +70,20 @@ TM1638lite tm(4, 7, 8);
 #define SETC 0x32 // set carry
 #define CLC 0x33 // clear carry 
 #define CLV 0x34 // clear overflow
+#define BITAi 0x35 // memory contents AND acc, immediate, only status affected
+#define BITAa 0x37 // memory contents AND acc, absolute, only status affected
+#define BITAx 0x38 // memory contents AND acc, indexed, only status affected
+#define BITAxx 0x39 // memory contents AND acc, doubly-indexed, only status affected
+#define BITBi 0x3A // memory contents AND acc, immediate, only status affected
+#define BITBa 0x3B // memory contents AND acc, absolute, only status affected
+#define BITBx 0x3C // memory contents AND acc, indexed, only status affected
+#define BITBxx 0x3D // memory contents AND acc, doubly-indexed, only status affected
 
-// ALU Stack-related
-#define PUSHA 0x40
-#define POPA 0x41
-#define PUSHB 0x42
-#define POPB 0x43
+// Auxiliary Stack-related
+#define PUSHXA 0x40
+#define POPXA 0x41
+#define PUSHXB 0x42
+#define POPXB 0x43
 // see https://www.forth.com/starting-forth/2-stack-manipulation-operators-arithmetic/
 #define SWAPS 0x44
 #define DUP 0x45
@@ -84,15 +93,45 @@ TM1638lite tm(4, 7, 8);
 #define TUCK 0x49
 
 // IMPLEMENTED TO HERE
+
+// Pc-related, jumps etc
+
+// PC stack
+#define SPCa 0x50 // store stack pointer, absolute
+#define SPCx 0x51 // store stack pointer, indexed
+#define PUSHA 0x52 // push accumulator A onto PC stack
+#define POPA 0x53  // pop accumulator A onto PC stack
+#define PUSHB 0x54 // push accumulator B onto PC stack
+#define POPB 0x55  // pop accumulator B onto PC stack
+
+// unconditional jumps
+#define JMPi 0x56 // BRA
+#define JMPa 0x57
+#define JMPr 0x58
+
+// subroutine jumps
+#define JSRa 0x59 // jump to subroutine absolute
+#define JSRr 0x5A // jump to subroutine relative (BSR)
+#define RTS 0x5B // return from subroutine
+
+// conditional, relative branches
+#define BZS 0x60 // branch if zero set (6800 BEQ)
+#define BZC 0x61 // branch if zero clear(BNE)
+#define BCS 0x62 // branch if carry set 
+#define BCC 0x63 // branch if carry clear
+#define BNS 0x64 // branch if negative set (BMI)
+#define BNS 0x65 // branch if negative clear (BMI)
+#define BVS 0x66 // branch if overflow set 
+#define BVC 0x67 // branch if overflow clear 
+#define BGE 0x68 // branch if greater than or equal to 0
+#define BGT 0x69 // branch if greater than 0
+#define BLT 0x6A // branch if less than 0
+
+
 /*
-  // Pc-related, jumps etc
-  #define SPCa 0x20
-  #define JMPa 0x21
-  #define JMPr 0x22
-  #define JNZa 0x23
-  // PC stack
-  #define PUSH 0x25
-  #define POP 0x26
+
+  INC
+  DEC
 
   // Accumulator arithmetic ops
   #define ADDA 0x48
@@ -107,12 +146,17 @@ TM1638lite tm(4, 7, 8);
 //
 
 // DOG-1 specific, for testing
-#define OK 0xFD
-#define ERR 0xFE
+#define RND 0xFB // load accumulators A & B with random values
+#define DEBUG 0xFC // sets/reset debugOn
+#define OK 0xFD // display ok
+#define ERR 0xFE // display err
 
+// finally...
 #define HALT 0xFF
 
-// END OPCODES # leave in place, used by ass.py
+// END OPCODES # leave this line in place, used by ass.py
+
+boolean debugOn = false;
 
 boolean mode = PROG_MODE;
 boolean runMode = STEP;
@@ -124,7 +168,7 @@ uint8_t ledStep = 0;
 */
 uint8_t program[MAX_PROG_SIZE]; // the code
 uint8_t pcStack[PC_STACK_SIZE]; // PC/subroutine-oriented stack
-uint8_t aluStack[ALU_STACK_SIZE]; // experimental stack-oriented programming/maths stack
+uint8_t xStack[X_STACK_SIZE]; // experimental stack-oriented programming/maths stack
 
 /**
     ################# The Registers ##################
@@ -134,7 +178,7 @@ unsigned int xReg; // index register, 16 bits, 0 to 65535  (or rather, MAX_PROG_
 unsigned int pcStackP; // stack pointer, 16 bits
 
 char acc[2]; // accumulators A & , 8 - bits, -128 to 127
-uint8_t aluStackP; // stack pointer, 8 bits, 0 to 255
+uint8_t xStackP; // stack pointer, 8 bits, 0 to 255
 
 uint8_t status; // status register (flags), initialised with a vaguely helpful test pattern, LEDs over system displays only (4 & 5)
 
@@ -148,7 +192,7 @@ void initRegisters() {
   acc[1] = 0xEF; // accumulator B, 8-bits
   xReg = 0; // index register, 16 bits
   pcStackP = 0; // PC stack pointer, 16 bits
-  aluStackP = 0; // ALU stack pointer, 8 bits
+  xStackP = 0; // ALU stack pointer, 8 bits
   status = 0x30; // status register (flags), initialised with a vaguely helpful test pattern, LEDs over system displays only (4 & 5)
 
   for (unsigned long i = 0; i < MAX_PROG_SIZE; i++) { // wipe all instructions
@@ -159,8 +203,8 @@ void initRegisters() {
     pcStack[i] = 0;
   }
 
-  for (unsigned long i = 0; i < ALU_STACK_SIZE; i++) { // wipe contents of ALU stack
-    aluStack[i] = 0;
+  for (unsigned long i = 0; i < X_STACK_SIZE; i++) { // wipe contents of ALU stack
+    xStack[i] = 0;
   }
 
   // misc resetting
@@ -236,8 +280,8 @@ void doOperation() {
 
     case LDAi:               // Load accumulator A immediate
       LDi(0);
-      flashMessage("LDAi");
-      flashMessage(acc[0]);
+      debug("LDAi");
+      debug(acc[0]);
       return;
 
     case LDAa:                            // Load accumulator A absolute
@@ -377,91 +421,143 @@ void doOperation() {
       return;
 
     case SETC: // set carry
-      status = status | CARRY; // OR with 1000
+      setFlag(CARRY, true);
       showError("tESt");
       return;
 
     case CLC: // clear carry
-      status = status & !CARRY; // AND with 0111
+      setFlag(CARRY, false);
       showError("tESt");
       return;
 
     case CLV: // clear overflow
-      status = status & !OVERFLOW; // OR with 1101
+      setFlag(OVERFLOW, false);
       showError("tESt");
       return;
 
-    // ############# ALU stack-related
+    /*
+         bits 7 and 6 of operand are transfered to bit 7 and 6 of SR (N,V);
+         the zeroflag is set to the result of operand AND accumulator.
+    */
+    case BITAi: // memory contents AND acc, immediate, only status affected
+      showError("tESt");
+      BITi(0);
+      //  status = status | CARRY; // OR with 1000
 
-    case PUSHA: // push value in accumulator A to top of ALU Stack
-      pushALU(0);
+      return;
+
+
+    case BITAa: // memory contents AND acc, absolute, only status affected
       showError("tESt");
       return;
 
-    case POPA: // pop value from top of ALU Stack into accumulator A
-      popALU(0);
+    case BITAx: // memory contents AND acc, indexed, only status affected
       showError("tESt");
       return;
 
-    case PUSHB: // push value in accumulator B to top of ALU Stack
-      pushALU(1);
+    case BITAxx: // memory contents AND acc, doubly-indexed, only status affected
       showError("tESt");
       return;
 
-    case POPB: // pop value from top of ALU Stack into accumulator B
-      popALU(1);
+    case BITBi: // memory contents AND acc, immediate, only status affected
+      showError("tESt");
+      return;
+
+    case BITBa: // memory contents AND acc, absolute, only status affected
+      showError("tESt");
+      return;
+
+    case BITBx: // memory contents AND acc, indexed, only status affected
+      showError("tESt");
+      return;
+
+    case BITBxx: // memory contents AND acc, doubly-indexed, only status affected
+      showError("tESt");
+      return;
+
+      
+    // ############# X stack-related
+
+    case PUSHXA: // push value in accumulator A to top of ALU Stack
+      pushX(0);
+      showError("tESt");
+      return;
+
+    case POPXA: // pop value from top of ALU Stack into accumulator A
+      popX(0);
+      showError("tESt");
+      return;
+
+    case PUSHXB: // push value in accumulator B to top of X Stack
+      pushX(1);
+      showError("tESt");
+      return;
+
+    case POPXB: // pop value from top of ALU Stack into accumulator B
+      popX(1);
       showError("tESt");
       return;
 
     case SWAPS: // a b c => b a c
-      swapALU();
+      swapX();
       showError("tESt");
       return;
 
     case DUP: // a b c => a a b c
-      dupALU();
+      dupX();
       showError("tESt");
       return;
 
     case OVER: // a b c => b a b c
-      if (aluStackP >= ALU_STACK_SIZE - 1) {
+      if (xStackP >= X_STACK_SIZE - 1) {
         showError("OvEr");
       }
-      aluStackP++;
-      aluStack[aluStackP] = aluStack[aluStackP - 2];
+      xStackP++;
+      xStack[xStackP] = xStack[xStackP - 2];
       showError("tESt");
       return;
 
     case ROT: //  a b c => c a b
-      temp = aluStack[aluStackP];
-      aluStack[aluStackP] = aluStack[aluStackP - 2];
-      aluStack[aluStackP - 2] = aluStack[aluStackP - 1];
-      aluStack[aluStackP - 1] = temp;
+      temp = xStack[xStackP];
+      xStack[xStackP] = xStack[xStackP - 2];
+      xStack[xStackP - 2] = xStack[xStackP - 1];
+      xStack[xStackP - 1] = temp;
       showError("tESt");
       return;
 
     case DROP: // a b c => b c
-      if (aluStackP <= 0) {
+      if (xStackP <= 0) {
         showError("Undr");
       }
-      aluStackP--;
+      xStackP--;
       showError("tESt");
       return;
 
     case TUCK: // a b c => a b a c
-      swapALU();
-      dupALU();
+      swapX();
+      dupX();
       showError("tESt");
       return;
-
 
     // see https://www.forth.com/starting-forth/2-stack-manipulation-operators-arithmetic/
     // PICK & ROLL
     // http://galileo.phys.virginia.edu/classes/551.jvn.fall01/primer.htm#stacks
 
+    // ################# debugging/testing
+
+    case DEBUG:// flips the state of debug
+      debugOn = !debugOn;
+      return;
+
+#define DEBUG 0xFC
+#define OK 0xFD
+#define ERR 0xFE
+
     // ## and finally... ##
 
     case HALT:
+      tm.displayASCII (4, 'r') ; // 'run done'
+      tm.displayASCII (5, 'd') ;
       waitForButton();
       mode = PROG_MODE;
       runMode = STEP;
@@ -537,33 +633,56 @@ void ROR(uint8_t id) { // rotate left accumulator <id>
   status = status | temp; // put previous 7th bit in carry flag
 }
 
-void pushALU(uint8_t id) {
-  if (aluStackP >= ALU_STACK_SIZE - 1) {
-    showError("OvEr");
+void setFlag(uint8_t flag, boolean value) {
+  uint8_t mask = 1 << flag;
+  if (true) {
+    status = status | mask;
+  } else {
+    status = status & !mask;
   }
-  aluStack[aluStackP++] = acc[id];
+}
+// ####################################################################################
+
+void BITi(uint8_t id) {
+  uint8_t val = program[pc++];
+  setFlag(NEGATIVE, val & 128);
+  setFlag(OVERFLOW, val & 64);
+  if (val && acc[id] == 0) {
+    setFlag(ZERO, true);
+  } else {
+    setFlag(ZERO, false);
+  }
 }
 
-void popALU(uint8_t id) {
-  if (aluStackP <= 0) {
+void pushX(uint8_t id) {
+  if (xStackP >= X_STACK_SIZE - 1) {
+    showError("OvEr");
+  }
+  xStack[xStackP++] = acc[id];
+}
+
+void popX(uint8_t id) {
+  if (xStackP <= 0) {
     showError("Undr");
   }
-  acc[id] = aluStack[--aluStackP];
+  acc[id] = xStack[--xStackP];
 }
 
-void swapALU() {
-  uint8_t temp = aluStack[aluStackP - 1];
-  aluStack[aluStackP - 1] = aluStack[aluStackP];
-  aluStack[aluStackP] = temp;
+void swapX() {
+  uint8_t temp = xStack[xStackP - 1];
+  xStack[xStackP - 1] = xStack[xStackP];
+  xStack[xStackP] = temp;
 }
 
-void dupALU() {
-  if (aluStackP >= ALU_STACK_SIZE - 1) {
+void dupX() {
+  if (xStackP >= X_STACK_SIZE - 1) {
     showError("OvEr");
   }
-  aluStackP++;
-  aluStack[aluStackP] = aluStack[aluStackP - 1];
+  xStackP++;
+  xStack[xStackP] = xStack[xStackP - 1];
 }
+
+
 
 /**
    ###################
@@ -687,7 +806,7 @@ void handleButtons() {
 
     // 0 & 7 - display ALU Stack Pointer & status
     if ( (buttons & (1 << 0)) && (buttons & (1 << 7))) {
-      displayHex(4, 2, aluStackP);
+      displayHex(4, 2, xStackP);
       displayHex(6, 2, status);
       waitForButton();
       return;
@@ -714,8 +833,8 @@ void handleButtons() {
       }
     }
 
-   // if (mode == RUN_MODE) {
-   //   return;
+    // if (mode == RUN_MODE) {
+    //   return;
     //}
 
     // ################ Edit Buttons ###################
@@ -792,6 +911,7 @@ void handleButtons() {
 /**
    ######################## 7-Segment Display #######################
 */
+
 void showError(String message) {
   tm.displayText("    " + message);
   displayPC();
@@ -799,15 +919,35 @@ void showError(String message) {
   mode = PROG_MODE;
 }
 
-void flashMessage(String message){
-    tm.displayText(message);
-    delay(1000);
+void debug(String message) {
+  if (debugOn) flashMessage(message);
 }
 
+/*
+  void debug(uint8_t value){
+  if(debug) flashMessage(value);
+  }
+*/
 
-void flashMessage(uint8_t value){
- displayHex(4,2, value);
- delay(1000);
+void debug(long value) {
+  if (debugOn) flashMessage(value);
+}
+
+void flashMessage(String message) {
+  tm.displayText(message);
+  delay(1000);
+}
+
+/*
+  void flashMessage(uint8_t value){
+  displayHex(4,2, value);
+  delay(1000);
+  }
+*/
+
+void flashMessage(long value) {
+  displayHex(4, 4, value);
+  delay(1000);
 }
 
 void displayCode() {
@@ -846,10 +986,10 @@ void displayMode() {
     }
   } else { // RUN_MODE
     tm.displayASCII(4, 'R');
-    if(runMode == RUN) {
-       tm.displayASCII(5, 'R'); // Run
+    if (runMode == RUN) {
+      tm.displayASCII(5, 'R'); // Run
     } else {
-       tm.displayASCII(5, 'S'); // Step
+      tm.displayASCII(5, 'S'); // Step
     }
   }
 }

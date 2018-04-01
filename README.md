@@ -3,7 +3,7 @@
 
 Playing with a cheapo TM1638 card driven by an Arduino Uno. Trying to put together a simple single-board computer a bit like the Kim-1, except with two boards and my own instruction set etc.
 
-I've written up the [design/manual](https://github.com/danja/dog/blob/master/docs/overview.md) as far as instruction set, which I'm pretty much working out as I go along.
+I'm writing up the [DOG-1 Manual](https://github.com/danja/dog/blob/master/docs/manual.md) as I go along.
 
 ### Status  
 

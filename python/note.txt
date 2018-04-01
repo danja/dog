@@ -1,0 +1,10 @@
+dog/python$ 
+
+chmod 777 ass.py
+chmod 777 upload.py
+
+./ass.py > prog.txt
+./upload.py
+
+
+

@@ -1,14 +1,18 @@
+#!/usr/bin/env python
 import sys
 
 src = "../src/dog-1/dog-1.ino"
 
 prog = "test.txt"
 
+codes_dump = "opcodes.txt"
+
 start = "START OPCODES"
 end = "END OPCODES"
 define = "#define"
 
 dict = {}
+codes = []
 
 def load_dictionary():
     in_opcodes = False
@@ -25,7 +29,14 @@ def load_dictionary():
             line = " ".join(line.split()) # normalise whitespace
             chunks = line.strip().split(" ")
             dict.update({chunks[1] : chunks[2][2:]})
-            # print chunks[1] + " " + chunks[2]
+            codes.append(chunks[1])
+
+def dump_codes():
+    with open(codes_dump, "w") as f:
+        f.write("| Inst | Syntax | Mode | Size |C|Z|V|N| Symbolic | Description |\n")
+        f.write("| ---- | ------ | ---- | ---- |-|-|-|-| -------- | ----------- |\n")
+        for code in codes:
+            f.write("| "+code+" | ------ | ---- | ---- |-|-|-|-| -------- | ----------- | "+"\n")
 
         # print chunks[1]+" "+chunks[2]
 
@@ -55,5 +66,6 @@ def do_codes():
                         print chunk
 
 load_dictionary()
+dump_codes()
 # print dict["LDAi"]
 do_codes()
