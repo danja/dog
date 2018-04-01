@@ -146,7 +146,8 @@ TM1638lite tm(4, 7, 8);
 //
 
 // DOG-1 specific, for testing
-#define RND 0xFB // load accumulators A & B with random values
+#define RND 0xFA // load accumulators A & B with random values
+#define PAUSE 0xFB // wait for keypress
 #define DEBUG 0xFC // sets/reset debugOn
 #define OK 0xFD // display ok
 #define ERR 0xFE // display err
