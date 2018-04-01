@@ -60,8 +60,8 @@ nnnn = 4 hex digits
 | ------------------- | ---------------- | --------------------------------------- |
 | Immediate           | #nn              | Value is given immediately after opcode |
 | Absolute            | nnnn             | Value is contained in the given address |
-| Indirect Absolute   | (nnnn)           | -                                       |
-| Absolute Indexed, X | nnnn, X          | -                                       |
+| Indexed             | nnnn, X          | -                                       |
+| Doubly-Indexed      | nnnn, X          | -                                       |
 | Absolute Indexed, Y | nnnn, Y          | -                                       |
 | Relative            | nnnn             | -                                       |
 
@@ -277,7 +277,7 @@ Interrupt-driven bits?
 | DEBUG | ------ | ---- | ---- |-|-|-|-| -------- | ----------- |
 | OK | ------ | ---- | ---- |-|-|-|-| -------- | ----------- |
 | ERR | ------ | ---- | ---- |-|-|-|-| -------- | ----------- |
-| HALT | ------ | ---- | ---- |-|-|-|-| -------- | ----------- | 
+| HALT | ------ | ---- | ---- |-|-|-|-| -------- | ----------- |
 
 * * *
 
@@ -294,10 +294,6 @@ Space Invaders!!!!!!
 
 
 Using Arduino I/O - digital thermometer? beepy machine?
-
-
-
-
 
 ### See Also
 

@@ -32,7 +32,6 @@ TM1638lite tm(4, 7, 8);
 
 // system stuff
 #define NOP 0x00 // no operation
-#define CLRS 0x01 // clear status flags
 
 // accumulator A
 #define LDAi 0x10 // load accumulator A, immediate value
@@ -53,16 +52,16 @@ TM1638lite tm(4, 7, 8);
 #define STBxx 0x1E // store accumulator B, doubly-indexed
 
 // logic ops
-#define AND 0x20
-#define OR 0x21
-#define XOR 0x22
-#define COMA 0x23
-#define COMB 0x24
-#define ROLA 0x25
-#define RORA 0x26
-#define ROLB 0x27
-#define RORB 0x28
-#define SWAP 0x29  // swap values between accumulator A & B
+#define AND 0x20 // bitwise AND of accumulators A & B, result in A
+#define OR 0x21 // bitwise OR of accumulators A & B, result in A
+#define XOR 0x22 // bitwise XOR of accumulators A & B, result in A
+#define COMA 0x23 // accumulator A bitwise complement
+#define COMB 0x24 // accumulator A bitwise complement
+#define ROLA 0x25 // rotate accumulator A bits left
+#define RORA 0x26 // rotate accumulator A bits right
+#define ROLB 0x27 // rotate accumulator B bits left
+#define RORB 0x28 // rotate accumulator B bits right
+#define SWAP 0x29  // swap values between accumulators A & B
 
 // status register - flag ops
 #define CLRS 0x30 // clear status
@@ -70,80 +69,176 @@ TM1638lite tm(4, 7, 8);
 #define SETC 0x32 // set carry
 #define CLC 0x33 // clear carry 
 #define CLV 0x34 // clear overflow
-#define BITAi 0x35 // memory contents AND acc, immediate, only status affected
-#define BITAa 0x37 // memory contents AND acc, absolute, only status affected
-#define BITAx 0x38 // memory contents AND acc, indexed, only status affected
-#define BITAxx 0x39 // memory contents AND acc, doubly-indexed, only status affected
-#define BITBi 0x3A // memory contents AND acc, immediate, only status affected
-#define BITBa 0x3B // memory contents AND acc, absolute, only status affected
-#define BITBx 0x3C // memory contents AND acc, indexed, only status affected
-#define BITBxx 0x3D // memory contents AND acc, doubly-indexed, only status affected
 
-// Auxiliary Stack-related
-#define PUSHXA 0x40
-#define POPXA 0x41
-#define PUSHXB 0x42
-#define POPXB 0x43
+#define BITAi 0x35 // memory contents AND acc A, immediate, only status affected
+#define BITAa 0x36 // memory contents AND acc A, absolute, only status affected
+#define BITAx 0x37 // memory contents AND acc A, indexed, only status affected
+#define BITAxx 0x38 // memory contents AND acc A, doubly-indexed, only status affected
+#define BITBi 0x39 // memory contents AND acc B, immediate, only status affected
+#define BITBa 0x3A // memory contents AND acc B, absolute, only status affected
+#define BITBx 0x3B // memory contents AND acc B, indexed, only status affected
+#define BITBxx 0x3C // memory contents AND acc B, doubly-indexed, only status affected
+
+// Auxiliary Stack
+#define PUSHXA 0x40 // push accumulator A onto Auxiliary Stack
+#define POPXA 0x41 // pop accumulator A from Auxiliary Stack
+#define PUSHXB 0x42 // push accumulator B onto Auxiliary Stack
+#define POPXB 0x43 // pop accumulator B from Auxiliary Stack
 // see https://www.forth.com/starting-forth/2-stack-manipulation-operators-arithmetic/
-#define SWAPS 0x44
-#define DUP 0x45
-#define OVER 0x46
-#define ROT 0x47
-#define DROP 0x48
-#define TUCK 0x49
+#define SWAPS 0x44 // swap top 2 values of Auxiliary Stack a b c => b a c
+#define DUP 0x45 // duplicate top value of Auxiliary Stack  a b c => a a b c
+#define OVER 0x46 // push copy of 2nd value of Auxiliary Stack on top // a b c => b a b c
+#define ROT 0x47 // rotate top 3 values of Auxiliary Stack a b c => c a b
+#define DROP 0x48 // delete top valueof Auxiliary Stack a b c => b c
+#define TUCK 0x49 // tuck copy of top value of Auxiliary Stack below 2nd value a b c => a b a c
 
 // IMPLEMENTED TO HERE
 
 // Pc-related, jumps etc
 
 // PC stack
-#define SPCa 0x50 // store stack pointer, absolute
-#define SPCx 0x51 // store stack pointer, indexed
-#define PUSHA 0x52 // push accumulator A onto PC stack
-#define POPA 0x53  // pop accumulator A onto PC stack
-#define PUSHB 0x54 // push accumulator B onto PC stack
-#define POPB 0x55  // pop accumulator B onto PC stack
+#define LSPi 0x50 // load Stack Pointer, immediate
+#define LSPa 0x51 // load Stack Pointer, absolute
+#define LSPx 0x52 // load Stack Pointer, indexed
+#define LSPxx 0x53 // load Stack Pointer, doubly-indexed
+
+#define LDXi 0x54 // load Index Register, immediate
+#define LDXa 0x55 // load Index Register, absolute
+#define LDXx 0x56 // load Index Register, indexed
+#define LDXxx 0x57 // load Index Register, doubly-indexed
+
+#define SPCa 0x58 // store stack pointer, absolute
+#define SPCx 0x59 // store stack pointer, indexed
+
+#define PUSHA 0x5A // push accumulator A onto PC stack
+#define POPA 0x5B  // pop accumulator A onto PC stack
+#define PUSHB 0x5C // push accumulator B onto PC stack
+#define POPB 0x5D  // pop accumulator B onto PC stack
 
 // unconditional jumps
-#define JMPi 0x56 // BRA
-#define JMPa 0x57
-#define JMPr 0x58
+#define JMPi 0x60 // immediate jump (BRA)
+#define JMPa 0x61 // absolute jump
+#define JMPr 0x63 // relative jump
 
 // subroutine jumps
-#define JSRa 0x59 // jump to subroutine absolute
-#define JSRr 0x5A // jump to subroutine relative (BSR)
-#define RTS 0x5B // return from subroutine
+#define JSRa 0x64 // jump to subroutine absolute
+#define JSRr 0x65 // jump to subroutine relative (BSR)
+#define RTS 0x66 // return from subroutine
 
 // conditional, relative branches
-#define BZS 0x60 // branch if zero set (6800 BEQ)
-#define BZC 0x61 // branch if zero clear(BNE)
-#define BCS 0x62 // branch if carry set 
-#define BCC 0x63 // branch if carry clear
-#define BNS 0x64 // branch if negative set (BMI)
-#define BNS 0x65 // branch if negative clear (BMI)
-#define BVS 0x66 // branch if overflow set 
-#define BVC 0x67 // branch if overflow clear 
-#define BGE 0x68 // branch if greater than or equal to 0
-#define BGT 0x69 // branch if greater than 0
-#define BLT 0x6A // branch if less than 0
+#define BZS 0x68 // branch if zero set (6800 BEQ)
+#define BZC 0x69 // branch if zero clear(BNE)
+#define BCS 0x6A // branch if carry set 
+#define BCC 0x6B // branch if carry clear
+#define BNS 0x6C // branch if negative set (BMI)
+#define BNS 0x6D // branch if negative clear (BMI)
+#define BVS 0x6E // branch if overflow set 
+#define BVC 0x6F // branch if overflow clear 
+#define BGE 0x70 // branch if greater than or equal to 0
+#define BGT 0x71 // branch if greater than 0
+#define BLT 0x72 // branch if less than 0
 
+// arithmetic
+#define ABA 0x80 // add B to A
 
-/*
+#define ADDAi 0x81 // add to accumulator A, immediate
+#define ADDAa 0x82 // add to accumulator A, absolute
+#define ADDAx 0x83 // add to accumulator A, indexed
+#define ADDAxx 0x84 // add to accumulator A, doubly-indexed
 
-  INC
-  DEC
+#define ADDBi 0x85 // add to accumulator B, immediate
+#define ADDBa 0x86 // add to accumulator B, absolute
+#define ADDBx 0x87 // add to accumulator B, indexed
+#define ADDBx 0x88 // to accumulator B, doubly-indexed
 
-  // Accumulator arithmetic ops
-  #define ADDA 0x48
-  #define SUBA 0x49
-  #define CMPA 0x4A
+#define ADCAi 0x89 // add with carry, accumulator A, immediate
+#define ADCAa 0x8A // add with carry, accumulator A, absolute
+#define ADCAx 0x8B // add with carry, accumulator A, indexed
+#define ADCAxx 0x8C // add with carry, accumulator A, doubly-indexed
 
-  // hardware-related
-  #define USE 0x80
-  #define UNUSE 0x81
-*/
+#define ADCBi 0x8D // add with carry, accumulator B, immediate
+#define ADCBa 0x8E // add with carry, accumulator B, absolute
+#define ADCBx 0x8F // add with carry, accumulator B, indexed
+#define ADCBx 0x90 // add with carry, accumulator B, doubly-indexed
 
-//
+#define SUBAi 0x91 // add to accumulator A, immediate
+#define SUBAa 0x92 // add to accumulator A, absolute
+#define SUBAx 0x93 // add to accumulator A, indexed
+#define SUBAxx 0x94 // add to accumulator A, doubly-indexed
+
+#define SUBBi 0x95 // add to accumulator B, immediate
+#define SUBBa 0x96 // add to accumulator B, absolute
+#define SUBBx 0x97 // add to accumulator B, indexed
+#define SUBBx 0x98 // to accumulator B, doubly-indexed
+
+// logical
+#define ANDAi 0xA0 // AND immediate memory contents with accumulator A, result in A
+#define ANDAa 0xA1 // AND absolute memory contents with accumulator A, result in A
+#define ANDAx 0xA2 // AND indexed memory contents with accumulator A, result in A
+#define ANDAxx 0xA3 // AND doubly-indexed memory contents with accumulator A, result in A
+
+#define ANDBi 0xA4 // AND immediate memory contents with accumulator B, result in B
+#define ANDBa 0xA5 // AND absolute memory contents with accumulator B, result in B
+#define ANDBx 0xA6 // AND indexed memory contents with accumulator B, result in B
+#define ANDBxx 0xA7 // AND doubly-indexed memory contents with accumulator B, result in B
+
+#define ORAi 0xA8 // OR immediate memory contents with accumulator A, result in A
+#define ORAa 0xA9 // OR absolute memory contents with accumulator A, result in A
+#define ORAx 0xAA // OR indexed memory contents with accumulator A, result in A
+#define ORAxx 0xAB // OR doubly-indexed memory contents with accumulator A, result in A
+
+#define ORBi 0xAC // OR immediate memory contents with accumulator B, result in B
+#define ORBa 0xAD // OR absolute memory contents with accumulator B, result in B
+#define ORBx 0xAE // OR indexed memory contents with accumulator B, result in B
+#define ORBxx 0xAF // OR doubly-indexed memory contents with accumulator B, result in B
+
+#define EORAi 0xB0 // EXOR immediate memory contents with accumulator A, result in A
+#define EORAa 0xB1 // EXOR absolute memory contents with accumulator A, result in A
+#define EORAx 0xB2 // EXOR absolute memory contents with accumulator A, result in 
+#define EORAxx 0xB3 // EXOR doubly-indexed memory contents with accumulator A, result in A
+
+#define EORBi 0xB4 // EXOR immediate memory contents with accumulator B, result in B
+#define EORBa 0xB5 // EXOR absolute memory contents with accumulator B, result in B
+#define EORBx 0xB6 // EXOR indexed memory contents with accumulator B, result in B
+#define EORBxx 0xB7 // EXOR doubly-indexed memory contents with accumulator B, result in B
+
+#define CAB 0xB8 // compare A and B, only status flags affected
+
+#define CMPAi 0xB9 // compare immediate memory and accumulator A, only status flags affected
+#define CMPAa 0xBA // compare absolute memory and accumulator A, only status flags affected
+#define CMPAx 0xBB // compare indexed memory and accumulator A, only status flags affected
+#define CMPAxx 0xBC // compare doubly-indexed memory and accumulator A, only status flags affected
+#define CMPBi 0xBD // compare immediate memory and accumulator B, only status flags affected
+#define CMPBa 0xBE // compare absolute memory and accumulator B, only status flags affected
+#define CMPBx 0xBF // compare indexed memory and accumulator B, only status flags affected
+#define CMPBxx 0xC0 // compare doubly-indexed memory and accumulator B, only status flags affected
+
+#define CLRA 0xC1 // clear value of accumulator A
+#define CLRB 0xC2 // clear value of accumulator B
+#define CLRa 0xC3 // clear absolute memory
+#define CLRx 0xC4 // clear indexed memory
+
+// increment/decrement registers
+
+#define INCA 0xD0 // increment accumulator A
+#define INCB 0xD1 // increment accumulator A
+#define INCa 0xD2 // increment absolute address
+#define INCx 0xD3 // increment indexed address
+#define INCS 0xD4  // increment PC Stack pointer
+#define INXS 0xD5  // increment Auxiliary Stack pointer
+#define INCX 0xD6 // increment Index Register 
+
+#define DECA 0xD7 // increment accumulator A
+#define DECB 0xD8 // increment accumulator A
+#define DECa 0xD9 // increment absolute address
+#define DECx 0xDA // increment indexed address
+#define DECS 0xDB  // increment PC Stack pointer
+#define DEXS 0xDC  // increment Auxiliary Stack pointer
+#define DECX 0xDD // increment Index Register 
+
+// hardware-related
+#define USE 0xE0 // capture hardware 
+#define UNUSE 0xE1 // release hardware 
 
 // DOG-1 specific, for testing
 #define RND 0xFA // load accumulators A & B with random values
@@ -153,7 +248,7 @@ TM1638lite tm(4, 7, 8);
 #define ERR 0xFE // display err
 
 // finally...
-#define HALT 0xFF
+#define HALT 0xFF // terminates
 
 // END OPCODES # leave this line in place, used by ass.py
 
@@ -443,13 +538,12 @@ void doOperation() {
     case BITAi: // memory contents AND acc, immediate, only status affected
       showError("tESt");
       BITi(0);
-      //  status = status | CARRY; // OR with 1000
-
       return;
 
 
     case BITAa: // memory contents AND acc, absolute, only status affected
       showError("tESt");
+   //   BITa(0);
       return;
 
     case BITAx: // memory contents AND acc, indexed, only status affected
@@ -476,7 +570,7 @@ void doOperation() {
       showError("tESt");
       return;
 
-      
+
     // ############# X stack-related
 
     case PUSHXA: // push value in accumulator A to top of ALU Stack
@@ -550,9 +644,21 @@ void doOperation() {
       debugOn = !debugOn;
       return;
 
-#define DEBUG 0xFC
-#define OK 0xFD
-#define ERR 0xFE
+    case RND: // load accumulators A & B with random values
+      showError("tESt");
+      return;
+
+    case PAUSE: // wait for keypress
+      showError("tESt");
+      return;
+
+    case OK:
+      showError("tESt");
+      return;
+
+    case ERR:
+      showError("tESt");
+      return;
 
     // ## and finally... ##
 
