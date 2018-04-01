@@ -1,6 +1,8 @@
 # DOG-1
 'Danny's Obtuse Gadget'
 
+![DOG-1](https://github.com/danja/dog/blob/master/docs/dog-1.JPG?raw=true)
+
 Playing with a cheapo TM1638 card driven by an Arduino Uno. Trying to put together a simple single-board computer a bit like the Kim-1, except with two boards and my own instruction set etc.
 
 I'm writing up the [DOG-1 Manual](https://github.com/danja/dog/blob/master/docs/manual.md) as I go along.
