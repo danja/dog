@@ -30,26 +30,26 @@ TM1638lite tm(4, 7, 8);
 */
 // START OPCODES # leave this line in place, used by ass.py
 
-// system stuff
+// system
 #define NOP 0x00 // no operation
 
-// accumulator A
+// accumulator A load/store
 #define LDAi 0x10 // load accumulator A, immediate value
 #define LDAa 0x11 // load accumulator A, absolute ref'd address
 #define LDAx 0x12 // load accumulator A, indexed 
-#define LDAxx 0x13 // load accumulator A, doubly-index
+
 #define STAa 0x14 // store accumulator A, absolute ref'd address
 #define STAx 0x15 // store accumulator A, indexed 
-#define STAxx 0x16 // store accumulator A, doubly-indexed
+
 
 // accumulator B
 #define LDBi 0x18 // load accumulator B, immediate value
 #define LDBa 0x19 // load accumulator B, absolute ref'd address
 #define LDBx 0x1A // load accumulator B, indexed 
-#define LDBxx 0x1B // load accumulator B, doubly-index
+
 #define STBa 0x1C // store accumulator B, absolute ref'd address
 #define STBx 0x1D // store accumulator B, indexed 
-#define STBxx 0x1E // store accumulator B, doubly-indexed
+
 
 // logic ops
 #define AND 0x20 // bitwise AND of accumulators A & B, result in A
@@ -73,11 +73,11 @@ TM1638lite tm(4, 7, 8);
 #define BITAi 0x35 // memory contents AND acc A, immediate, only status affected
 #define BITAa 0x36 // memory contents AND acc A, absolute, only status affected
 #define BITAx 0x37 // memory contents AND acc A, indexed, only status affected
-#define BITAxx 0x38 // memory contents AND acc A, doubly-indexed, only status affected
+
 #define BITBi 0x39 // memory contents AND acc B, immediate, only status affected
 #define BITBa 0x3A // memory contents AND acc B, absolute, only status affected
 #define BITBx 0x3B // memory contents AND acc B, indexed, only status affected
-#define BITBxx 0x3C // memory contents AND acc B, doubly-indexed, only status affected
+
 
 // Auxiliary Stack
 #define PUSHXA 0x40 // push accumulator A onto Auxiliary Stack
@@ -100,12 +100,11 @@ TM1638lite tm(4, 7, 8);
 #define LSPi 0x50 // load Stack Pointer, immediate
 #define LSPa 0x51 // load Stack Pointer, absolute
 #define LSPx 0x52 // load Stack Pointer, indexed
-#define LSPxx 0x53 // load Stack Pointer, doubly-indexed
+
 
 #define LDXi 0x54 // load Index Register, immediate
 #define LDXa 0x55 // load Index Register, absolute
 #define LDXx 0x56 // load Index Register, indexed
-#define LDXxx 0x57 // load Index Register, doubly-indexed
 
 #define SPCa 0x58 // store stack pointer, absolute
 #define SPCx 0x59 // store stack pointer, indexed
@@ -144,7 +143,6 @@ TM1638lite tm(4, 7, 8);
 #define ADDAi 0x81 // add to accumulator A, immediate
 #define ADDAa 0x82 // add to accumulator A, absolute
 #define ADDAx 0x83 // add to accumulator A, indexed
-#define ADDAxx 0x84 // add to accumulator A, doubly-indexed
 
 #define ADDBi 0x85 // add to accumulator B, immediate
 #define ADDBa 0x86 // add to accumulator B, absolute
@@ -154,7 +152,7 @@ TM1638lite tm(4, 7, 8);
 #define ADCAi 0x89 // add with carry, accumulator A, immediate
 #define ADCAa 0x8A // add with carry, accumulator A, absolute
 #define ADCAx 0x8B // add with carry, accumulator A, indexed
-#define ADCAxx 0x8C // add with carry, accumulator A, doubly-indexed
+
 
 #define ADCBi 0x8D // add with carry, accumulator B, immediate
 #define ADCBa 0x8E // add with carry, accumulator B, absolute
@@ -164,7 +162,7 @@ TM1638lite tm(4, 7, 8);
 #define SUBAi 0x91 // add to accumulator A, immediate
 #define SUBAa 0x92 // add to accumulator A, absolute
 #define SUBAx 0x93 // add to accumulator A, indexed
-#define SUBAxx 0x94 // add to accumulator A, doubly-indexed
+
 
 #define SUBBi 0x95 // add to accumulator B, immediate
 #define SUBBa 0x96 // add to accumulator B, absolute
@@ -175,43 +173,37 @@ TM1638lite tm(4, 7, 8);
 #define ANDAi 0xA0 // AND immediate memory contents with accumulator A, result in A
 #define ANDAa 0xA1 // AND absolute memory contents with accumulator A, result in A
 #define ANDAx 0xA2 // AND indexed memory contents with accumulator A, result in A
-#define ANDAxx 0xA3 // AND doubly-indexed memory contents with accumulator A, result in A
 
 #define ANDBi 0xA4 // AND immediate memory contents with accumulator B, result in B
 #define ANDBa 0xA5 // AND absolute memory contents with accumulator B, result in B
 #define ANDBx 0xA6 // AND indexed memory contents with accumulator B, result in B
-#define ANDBxx 0xA7 // AND doubly-indexed memory contents with accumulator B, result in B
 
 #define ORAi 0xA8 // OR immediate memory contents with accumulator A, result in A
 #define ORAa 0xA9 // OR absolute memory contents with accumulator A, result in A
 #define ORAx 0xAA // OR indexed memory contents with accumulator A, result in A
-#define ORAxx 0xAB // OR doubly-indexed memory contents with accumulator A, result in A
 
 #define ORBi 0xAC // OR immediate memory contents with accumulator B, result in B
 #define ORBa 0xAD // OR absolute memory contents with accumulator B, result in B
 #define ORBx 0xAE // OR indexed memory contents with accumulator B, result in B
-#define ORBxx 0xAF // OR doubly-indexed memory contents with accumulator B, result in B
 
 #define EORAi 0xB0 // EXOR immediate memory contents with accumulator A, result in A
 #define EORAa 0xB1 // EXOR absolute memory contents with accumulator A, result in A
 #define EORAx 0xB2 // EXOR absolute memory contents with accumulator A, result in 
-#define EORAxx 0xB3 // EXOR doubly-indexed memory contents with accumulator A, result in A
 
 #define EORBi 0xB4 // EXOR immediate memory contents with accumulator B, result in B
 #define EORBa 0xB5 // EXOR absolute memory contents with accumulator B, result in B
 #define EORBx 0xB6 // EXOR indexed memory contents with accumulator B, result in B
-#define EORBxx 0xB7 // EXOR doubly-indexed memory contents with accumulator B, result in B
 
 #define CAB 0xB8 // compare A and B, only status flags affected
 
 #define CMPAi 0xB9 // compare immediate memory and accumulator A, only status flags affected
 #define CMPAa 0xBA // compare absolute memory and accumulator A, only status flags affected
 #define CMPAx 0xBB // compare indexed memory and accumulator A, only status flags affected
-#define CMPAxx 0xBC // compare doubly-indexed memory and accumulator A, only status flags affected
+
 #define CMPBi 0xBD // compare immediate memory and accumulator B, only status flags affected
 #define CMPBa 0xBE // compare absolute memory and accumulator B, only status flags affected
 #define CMPBx 0xBF // compare indexed memory and accumulator B, only status flags affected
-#define CMPBxx 0xC0 // compare doubly-indexed memory and accumulator B, only status flags affected
+
 
 #define CLRA 0xC1 // clear value of accumulator A
 #define CLRB 0xC2 // clear value of accumulator B
@@ -291,15 +283,15 @@ void initRegisters() {
   xStackP = 0; // ALU stack pointer, 8 bits
   status = 0x30; // status register (flags), initialised with a vaguely helpful test pattern, LEDs over system displays only (4 & 5)
 
-  for (unsigned long i = 0; i < MAX_PROG_SIZE; i++) { // wipe all instructions
+  for (unsigned int i = 0; i < MAX_PROG_SIZE; i++) { // wipe all instructions
     program[i] = 0; // NOP
   }
 
-  for (unsigned long i = 0; i < PC_STACK_SIZE; i++) { // wipe contents of PC stack
+  for (unsigned int i = 0; i < PC_STACK_SIZE; i++) { // wipe contents of PC stack
     pcStack[i] = 0;
   }
 
-  for (unsigned long i = 0; i < X_STACK_SIZE; i++) { // wipe contents of ALU stack
+  for (unsigned int i = 0; i < X_STACK_SIZE; i++) { // wipe contents of ALU stack
     xStack[i] = 0;
   }
 
@@ -369,10 +361,14 @@ void doOperation() {
 
   switch (op) {
 
+    // ############### system ############### 
+
     case NOP: // no operation
+      showError("tESt");
       return;
 
-    // ############### accumulator A load and store
+    //accumulator A load and store
+
 
     case LDAi:               // Load accumulator A immediate
       LDi(0);
@@ -390,24 +386,12 @@ void doOperation() {
       showError("tESt");
       return;
 
-
-    case LDAxx:                                      // Load accumulator A doubly-indexed (6502 calls it Indirect Indexed)
-      LDxx(0);
-      showError("tESt");
-      return;
-
     case STAa:                            // Store accumulator A absolute
       STa(0);
       return;
 
     case STAx:                            // Store accumulator A indexed (6502 calls it Indexed Indirect)
       STx(0);
-      showError("tESt");
-      return;
-
-    case STAxx:                                      // Store accumulator A doubly-indexed (6502 calls it Indirect Indexed)
-      STxx(0);
-      showError("tESt");
       return;
 
     // ############### accumulator B load and store
@@ -427,11 +411,6 @@ void doOperation() {
       showError("tESt");
       return;
 
-    case LDBxx:                                      // Load accumulator B doubly-indexed (6502 calls it Indirect Indexed)
-      LDxx(1);
-      showError("tESt");
-      return;
-
     case STBa:                            // Store accumulator B absolute
       STa(1);
       showError("tESt");
@@ -442,12 +421,7 @@ void doOperation() {
       showError("tESt");
       return;
 
-    case STBxx:                                      // Store accumulator B doubly-indexed (6502 calls it Indirect Indexed)
-      STxx(1);
-      showError("tESt");
-      return;
-
-    // ############### logical operators
+    // ############### acc logical operators ###############
 
     case AND: // bitwise AND of accumulators A & B, result in A
       acc[0] = acc[0] & acc[1];
@@ -501,7 +475,7 @@ void doOperation() {
       showError("tESt");
       return;
 
-    // ############# status flag ops
+    // ############# status flag ops #############
 
     // 76543210
     // ----CZVN
@@ -543,14 +517,10 @@ void doOperation() {
 
     case BITAa: // memory contents AND acc, absolute, only status affected
       showError("tESt");
-   //   BITa(0);
+      //   BITa(0);
       return;
 
     case BITAx: // memory contents AND acc, indexed, only status affected
-      showError("tESt");
-      return;
-
-    case BITAxx: // memory contents AND acc, doubly-indexed, only status affected
       showError("tESt");
       return;
 
@@ -566,12 +536,7 @@ void doOperation() {
       showError("tESt");
       return;
 
-    case BITBxx: // memory contents AND acc, doubly-indexed, only status affected
-      showError("tESt");
-      return;
-
-
-    // ############# X stack-related
+    // ############# Auxiliary Stack-related #############
 
     case PUSHXA: // push value in accumulator A to top of ALU Stack
       pushX(0);
@@ -634,9 +599,10 @@ void doOperation() {
       showError("tESt");
       return;
 
-    // see https://www.forth.com/starting-forth/2-stack-manipulation-operators-arithmetic/
-    // PICK & ROLL
-    // http://galileo.phys.virginia.edu/classes/551.jvn.fall01/primer.htm#stacks
+// PC stack
+// unconditional jumps
+// subroutine jumps
+// conditional, relative branches
 
     // ################# debugging/testing
 
@@ -702,13 +668,6 @@ void LDx(uint8_t id) { // Load accumulator A indexed (6502 calls it Indexed Indi
   acc[id] = program[addr];               // look up the value at the total
 }
 
-void LDxx(uint8_t id) { // Load accumulator <id> doubly-indexed (6502 calls it Indirect Indexed)
-  unsigned long localIndex = readAbsoluteAddr(); // read next 2 bytes,
-  unsigned long addr = program[localIndex];      // lookup the value at that address
-  addr += xReg;                                   // add the index reg value
-  acc[0] = program[addr];                          // look up the value at the result
-}
-
 void STa(uint8_t id) {  // Store accumulator <id> absolute
   program[readAbsoluteAddr()] = acc[id]; // read next 2 bytes, store acc value at that address
 }
@@ -717,13 +676,6 @@ void STx(uint8_t id) { // Store accumulator <id> indexed (6502 calls it Indexed 
   unsigned long addr = xReg;          // start with the index register value
   addr += program[++pc];              // add the next byte in the program
   program[addr] = acc[id];               // store acc value at the total
-}
-
-void STxx(uint8_t id) {  // Store accumulator A doubly-indexed (6502 calls it Indirect Indexed)
-  unsigned long localIndex = readAbsoluteAddr(); // read next 2 bytes,
-  unsigned long addr = program[localIndex];      // lookup the value at that address
-  addr += xReg;                                   // add the index reg value
-  program[addr] = acc[id];                          // store acc value at the result
 }
 
 void ROL(uint8_t id) { // rotate left accumulator <id>
