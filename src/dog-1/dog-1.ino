@@ -352,7 +352,7 @@ void loop() {
 
       if (mode == RUN_MODE) {
         if (runMode == STEP) { // RUN-STEP FIX ME!
-          // waitForButton();
+      //   waitForButton();
 
         }
         doOperation();
