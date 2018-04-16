@@ -9,7 +9,20 @@ I'm writing up the [DOG-1 Manual](https://github.com/danja/dog/blob/master/docs/
 
 ### Status  
 
-**2018-03-31** : up to about 40 opcodes (untested). Made a minimal assembler in Python, should be enough for testing. (It takes opcode/hex value map directly from defines in the C source, so will be in sync).
+**2018-04-16** : made a mess of my TM1638 lib, took me a while to fix that. Then I got in a mess with my flags. Turned out I'd put in !x rather than ~x for bitwise negation, took me ages to spot. But pretty much back on track. Got this to run ok:
+
+<pre>
+LDAi F6 ; put 0xF6 in acc A
+STAa 99 01 ; store acc A at 0199
+LDBa 99 01  ; load acc B from 0199
+CAB ; compare A & B
+BZS 01; branch if zero set
+ERR ; display Err
+OK ; display ok
+HALT
+</pre>
+
+2018-03-31 : up to about 40 opcodes (untested). Made a minimal assembler in Python, should be enough for testing. (It takes opcode/hex value map directly from defines in the C source, so will be in sync).
 
 2018-03-30 : now implemented 7 instructions for each of acc A & B (refactored to use same routines)
 

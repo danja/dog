@@ -1,6 +1,6 @@
 LDAi F6 ; put 0xF6 in acc A
-STAa 99 01 ; store acc A at 0099
-LDBa 99 01  ; load acc B from 0099
+STAa 99 01 ; store acc A at 0199
+LDBa 99 01  ; load acc B from 0199
 CAB ; compare A & B
 BZS 01; branch if zero set
 ERR ; display Err
