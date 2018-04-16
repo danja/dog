@@ -1,3 +1,8 @@
+#include <unwind-cxx.h>
+#include <StandardCplusplus.h>
+#include <system_configuration.h>
+#include <utility.h>
+
 #include <TM1638lite.h>
 
 /**
@@ -7,6 +12,9 @@
      (I've opted for the ones without extra functions
 */
 TM1638lite tm(4, 7, 8);
+
+// TM1638lite tm = TM1638lite::TM1638lite(4, 7, 8);
+
 
 #define MAX_PROG_SIZE 512 // probably need to move prog elsewhere, is greedy
 #define PC_STACK_SIZE 64
@@ -232,7 +240,8 @@ TM1638lite tm(4, 7, 8);
 #define USE 0xE0 // capture hardware 
 #define UNUSE 0xE1 // release hardware 
 
-// DOG-1 specific, for testing
+//debugging/testing
+#define TEST 0xF9 // run test routine
 #define RND 0xFA // load accumulators A & B with random values
 #define PAUSE 0xFB // wait for keypress
 #define DEBUG 0xFC // sets/reset debugOn
@@ -248,6 +257,7 @@ boolean debugOn = false;
 
 boolean mode = PROG_MODE;
 boolean runMode = STEP;
+boolean pause = false;
 
 uint8_t ledStep = 0;
 
@@ -265,7 +275,7 @@ unsigned int pc; // program counter
 unsigned int xReg; // index register, 16 bits, 0 to 65535  (or rather, MAX_PROG_SIZE?)
 unsigned int pcStackP; // stack pointer, 16 bits
 
-char acc[2]; // accumulators A & , 8 - bits, -128 to 127
+uint8_t acc[2]; // accumulators A & , 8 - bits, -128 to 127
 uint8_t xStackP; // stack pointer, 8 bits, 0 to 255
 
 uint8_t status; // status register (flags), initialised with a vaguely helpful test pattern, LEDs over system displays only (4 & 5)
@@ -298,6 +308,7 @@ void initRegisters() {
   // misc resetting
   mode = PROG_MODE;
   ledStep = 0;
+  pause = false;
 }
 
 void welcome() {
@@ -307,7 +318,9 @@ void welcome() {
 
 
 /**
+   ###############################################################
    ######################## SETUP ################################
+   ###############################################################
 */
 void setup() {
   Serial.begin(9600);
@@ -316,7 +329,9 @@ void setup() {
 }
 
 /**
+   ################################################################
    ########################  LOOP #################################
+   ################################################################
 */
 void loop() {
 
@@ -330,15 +345,19 @@ void loop() {
     if (pc >= MAX_PROG_SIZE) pc = 0;
     if (pc < 0) pc = MAX_PROG_SIZE - 1;
 
-    display();
+    showStatus();
 
-    if (mode == RUN_MODE) {
-      if (runMode == STEP) { // RUN-STEP FIX ME!
-        // waitForButton();
+    if (!pause) {
+      display();
 
+      if (mode == RUN_MODE) {
+        if (runMode == STEP) { // RUN-STEP FIX ME!
+          // waitForButton();
+
+        }
+        doOperation();
+        pc++;
       }
-      doOperation();
-      pc++;
     }
 
     delay(100);
@@ -349,7 +368,9 @@ void loop() {
 }
 
 /*
-   ##################################### Operations ########################
+   ###########################################################
+   ####################### Operations ########################
+   ###########################################################
 */
 void doOperation() {
   uint8_t op = program[pc];
@@ -361,7 +382,7 @@ void doOperation() {
 
   switch (op) {
 
-    // ############### system ############### 
+    // ############### system ###############
 
     case NOP: // no operation
       showError("tESt");
@@ -369,11 +390,9 @@ void doOperation() {
 
     //accumulator A load and store
 
-
     case LDAi:               // Load accumulator A immediate
       LDi(0);
       debug("LDAi");
-      debug(acc[0]);
       return;
 
     case LDAa:                            // Load accumulator A absolute
@@ -514,7 +533,6 @@ void doOperation() {
       BITi(0);
       return;
 
-
     case BITAa: // memory contents AND acc, absolute, only status affected
       showError("tESt");
       //   BITa(0);
@@ -599,23 +617,32 @@ void doOperation() {
       showError("tESt");
       return;
 
-// PC stack
-// unconditional jumps
-// subroutine jumps
-// conditional, relative branches
+    // PC Stack
+    // unconditional jumps
+    // subroutine jumps
+    // conditional, relative branches
+    // arithmetic
+    // logical
+    // increment/decrement registers
+    // hardware-related
 
     // ################# debugging/testing
+
+    case TEST:
+      testFlags();
+      return;
 
     case DEBUG:// flips the state of debug
       debugOn = !debugOn;
       return;
 
     case RND: // load accumulators A & B with random values
-      showError("tESt");
+      pause = true;
       return;
 
-    case PAUSE: // wait for keypress
-      showError("tESt");
+    case PAUSE: //
+      pause = true;
+      tm.displayText("PAUSE...");
       return;
 
     case OK:
@@ -629,9 +656,11 @@ void doOperation() {
     // ## and finally... ##
 
     case HALT:
-      tm.displayASCII (4, 'r') ; // 'run done'
-      tm.displayASCII (5, 'd') ;
-      waitForButton();
+      if (!pause) {
+        tm.displayASCII (4, 'r') ; // 'run done'
+        tm.displayASCII (5, 'd') ;
+      }
+      waitForButton(); // pause would be better here
       mode = PROG_MODE;
       runMode = STEP;
       pc = 0;
@@ -643,10 +672,12 @@ void doOperation() {
 }
 
 /**
+   #############################################################
    ##################### Operation Helpers #####################
+   #############################################################
 */
 /**
-   read two bytes from program (updating PC 2), combine & retuen
+   read two bytes from program (updating PC 2), combine & return
 */
 unsigned int readAbsoluteAddr() {
   uint8_t lo = program[++pc];
@@ -654,8 +685,73 @@ unsigned int readAbsoluteAddr() {
   return (hi << 8) + lo;
 }
 
+// 0 through 127 are, in hex, $00 through $7F, respectively.
+// -128 through -1 are, in hex, $80 through $FF, respectively.
+
+// NEGATIVE 0
+// OVERFLOW 1
+// ZERO 2
+// CARRY 3
+
+void setFlag(uint8_t flag, boolean value) {
+  uint8_t mask = (1 << flag);
+
+  if (value) {
+    status = status | mask;
+  } else {
+  status = status & ~mask;
+  }
+   showStatus();
+}
+
+void testFlags() {
+for (uint8_t index = 0; index < 8; ++index) {
+  setFlag(index, true);
+  delay(200);
+}
+for (uint8_t index = 0; index < 8; ++index) {
+  setFlag(index, false);
+  delay(200);
+}
+
+for (uint8_t index = 0; index < 256; ++index) {
+  // setFlag(index, false);
+  status = index;
+  showStatus();
+  delay(200);
+}
+
+  /*
+  for (uint8_t mask = 0; mask < 0x08; ++mask) {
+    for (uint8_t index = 0; index < 4; ++index) {
+      uint8_t val = (mask >> index) & 1;
+      setFlag(val, true);
+      delay(500);
+    }
+  }
+  */
+}
+
+void doAccZero(uint8_t id) {
+  setFlag(ZERO, acc[id] == 0); /////////////////////////// acc[id] == 0
+}
+
+void doAccNeg(uint8_t id) {
+  setFlag(NEGATIVE, acc[id] & 128);
+}
+
 void LDi(uint8_t id) {             // Load accumulator <id> immediate
   acc[id] = program[++pc]; // move to next position in program, load into acc
+  setFlag(OVERFLOW, false);
+
+  doAccNeg(id);
+  flashMessage("Acc");
+  flashMessage(acc[id]);
+  flashMessage("F");
+  flashMessage(status); // with 81, status is 1 here
+  doAccZero(id);
+  flashMessage("F2"); // but 0 here
+  flashMessage(status);
 }
 
 void LDa(uint8_t id) { // Load accumulator <id> absolute
@@ -692,14 +788,6 @@ void ROR(uint8_t id) { // rotate left accumulator <id>
   status = status | temp; // put previous 7th bit in carry flag
 }
 
-void setFlag(uint8_t flag, boolean value) {
-  uint8_t mask = 1 << flag;
-  if (true) {
-    status = status | mask;
-  } else {
-    status = status & !mask;
-  }
-}
 // ####################################################################################
 
 void BITi(uint8_t id) {
@@ -750,7 +838,6 @@ void display() {
   displayMode();
   displayPC();
   displayCode();
-  showStatus();
 }
 
 /**
@@ -766,8 +853,10 @@ void doSerialIn() {
   stepLED();
 
   if (code == 0xFF) {
+    flashMessage("Loaded.");
     pc = 0;
     display();
+    showStatus();
   }
 }
 
@@ -843,6 +932,7 @@ void handleButtons() {
 
     // 0 & 4 - display Accumulators A, B
     if ( (buttons & (1 << 0)) && (buttons & (1 << 4))) {
+      displayPC();
       displayHex(4, 2, acc[0]);
       displayHex(6, 2, acc[1]);
       waitForButton();
@@ -851,6 +941,7 @@ void handleButtons() {
 
     // 0 & 5 - display Index Register
     if ( (buttons & (1 << 0)) && (buttons & (1 << 5))) {
+      displayPC();
       displayHex(4, 4, xReg);
       waitForButton();
       return;
@@ -858,13 +949,15 @@ void handleButtons() {
 
     // 0 & 6 - display PC Stack Pointer
     if ( (buttons & (1 << 0)) && (buttons & (1 << 6))) {
+      displayPC();
       displayHex(4, 4, pcStackP);
       waitForButton();
       return;
     }
 
-    // 0 & 7 - display ALU Stack Pointer & status
+    // 0 & 7 - display Auxiliary Stack Pointer & status
     if ( (buttons & (1 << 0)) && (buttons & (1 << 7))) {
+      displayPC();
       displayHex(4, 2, xStackP);
       displayHex(6, 2, status);
       waitForButton();
@@ -876,12 +969,27 @@ void handleButtons() {
     // 0 & 3 - flip between single-step & free run
     if ( (buttons & (1 << 0)) && (buttons & (1 << 3)) && mode == RUN_MODE) {
       runMode == RUN;
+      flashMessage("run");
+      return;
+    }
+
+
+    if (pause) {
+      if (buttons & (1 << 4)) {
+        pause = false;
+        return;
+      }
       return;
     }
 
     // #################### SINGLE BUTTON ######################
     if (buttons & (1 << 4)) {
       mode = !mode;
+      if (mode == PROG_MODE) {
+        pc = 0;
+      } else {
+        flashMessage("run");
+      }
       return;
     }
 

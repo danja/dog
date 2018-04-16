@@ -1,7 +1,2 @@
-FC DEBUG
-10 LDAi 66 ; put 0x66 in acc A
-66
-14 STAa 07 00 ; store acc A at 0070
-07
-00
+F9 TEST
 FF HALT

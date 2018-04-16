@@ -30,6 +30,66 @@ uint8_t aluStack[64];</p>
 <p>Note - I think I&#39;ll change this rather 6502-like setup after reading the 6800 datasheet. That has 2 accumulators and one X index register. Seems to make for a simpler but more versatile instruction set.</p>
 <p>Also quite interested in trying stack-oriented programming, &#39;check Here is a list of several stack manipulation operators, including SWAP&#39; <a href="https://www.forth.com/starting-forth/2-stack-manipulation-operators-arithmetic/">https://www.forth.com/starting-forth/2-stack-manipulation-operators-arithmetic/</a>
 Also Stack Operations in 6800 doc.</p>
+<h3 id="addressing-modes">Addressing Modes</h3>
+<p>// copied from 6800 spec, need to tweak</p>
+<ul>
+<li><p>ACC - Accumulator
+In accumulator addressing, either accumulator A or accumulator B is specified. These are 1- byte instructions.
+Ex: ABA adds the contetns of accumulators and stores the result in accumulator A</p>
+</li>
+<li><p>IMM - Immediate
+In immediate addressing, operand is located immediately after the opcode in the second byte of the instruction in program memory (except LDS and LDX where the operand is in the second and third bytes of the instruction). These are 2-byte or 3-byte instructions.
+Ex: LDAA #$25 loads the number (25)H into accumulator A</p>
+</li>
+<li><p>ABS - Absolute
+In absolute addressing, the address contained in the second byte of the instruction is used as the higher eight bits of the address of the operand. The third byte of the instruction is used as the lower eight bits of the address for the operand. This is an absolute address in the memory. These are 3-byte instructions.
+Ex: LDAA $1000 loads the contents of the memory address (1000)H into accumulator A</p>
+</li>
+<li><p>IDX - Indexed
+In indexed addressing, the address contained in the second byte of the instruction is added to the index register’s lowest eight bits. The carry is then added to the higher order eight bits of the index register. This result is then used to address memory. The modified address is held in a temporary address register so there is no change to the index register. These are 2-byte instructions.
+Ex: LDX #$1000 or LDAA $10,X
+Initially, LDX #$1000 instruction loads 1000H to the index register (X) using immediate addressing. Then LDAA $10,X instruction, using indexed addressing, loads the contents of memory address (10)H + X = 1010H into accumulator A.</p>
+</li>
+<li><p>IMP - Implied
+In the implied addressing mode, the instruction gives the address inherently (i.e, stack pointer, index register, etc.). Inherent instructions are used when no operands need to be fetched. These are 1 byte instructions.
+Ex: INX increases the contents of the Index register by one. The address information is &quot;inherent&quot; in the instruction itself.
+INCA increases the contents of the accumulator A by one.
+DECB decreases the contents of the accumulator B by one.</p>
+</li>
+<li><p>REL - Relative
+The relative addressing mode is used with most of the branching instructions on the 6802 microprocessor. The first byte of the instruction is the opcode. The second byte of the instruction is called the offset. The offset is interpreted as a signed 7-bit number. If the MSB (most significant bit) of the offset is 0, the number is positive, which indicates a forward branch. If the MSB of the offset is 1, the number is negative, which indicates a backward branch. This allows the user to address data in a range of -126 to +129 bytes of the present instruction. These are 2-byte instructions.</p>
+</li>
+</ul>
+<p>nn = 2 hex digits
+nnnn = 4 hex digits</p>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>Assembler Format</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Immediate</td>
+<td>#nn</td>
+<td>Value is given immediately after opcode</td>
+</tr>
+<tr>
+<td>Absolute</td>
+<td>(nnnn)</td>
+<td>Value is contained in the given address</td>
+</tr>
+<tr>
+<td>Indexed</td>
+<td>nnnn, X</td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<p>STAa 99 10 ; store acc A at 0199
+lo, hi</p>
 <p><strong>Flags</strong></p>
 <table>
 <thead>
@@ -73,121 +133,77 @@ Also Stack Operations in 6800 doc.</p>
 </tr>
 </tbody>
 </table>
-<p><strong>Addressing Modes</strong></p>
-<p>nn = 2 hex digits
-nnnn = 4 hex digits</p>
-<table>
-<thead>
-<tr>
-<th>Mode</th>
-<th>Assembler Format</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Immediate</td>
-<td>#nn</td>
-<td>Value is given immediately after opcode</td>
-</tr>
-<tr>
-<td>Absolute</td>
-<td>nnnn</td>
-<td>Value is contained in the given address</td>
-</tr>
-<tr>
-<td>Indexed</td>
-<td>nnnn, X</td>
-<td>-</td>
-</tr>
-<tr>
-<td>Doubly-Indexed</td>
-<td>nnnn, X</td>
-<td>-</td>
-</tr>
-<tr>
-<td>Absolute Indexed, Y</td>
-<td>nnnn, Y</td>
-<td>-</td>
-</tr>
-<tr>
-<td>Relative</td>
-<td>nnnn</td>
-<td>-</td>
-</tr>
-</tbody>
-</table>
 <h2 id="i-o">I/O</h2>
 <h4 id="tm1638-card">TM1638 Card</h4>
 <table>
 <thead>
 <tr>
-<th></th>
-<th>0</th>
-<th>1</th>
-<th>2</th>
-<th>3</th>
-<th>4</th>
-<th>5</th>
-<th>6</th>
-<th>7</th>
+<th style="text-align:left"></th>
+<th style="text-align:center">0</th>
+<th style="text-align:center">1</th>
+<th style="text-align:center">2</th>
+<th style="text-align:center">3</th>
+<th style="text-align:center">4</th>
+<th style="text-align:center">5</th>
+<th style="text-align:center">6</th>
+<th style="text-align:center">7</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>LEDs</td>
-<td>*</td>
-<td>*</td>
-<td>*</td>
-<td>*</td>
-<td>*</td>
-<td>*</td>
-<td>*</td>
-<td>*</td>
+<td style="text-align:left">LEDs</td>
+<td style="text-align:center">N</td>
+<td style="text-align:center">V</td>
+<td style="text-align:center">Z</td>
+<td style="text-align:center">C</td>
+<td style="text-align:center">X</td>
+<td style="text-align:center">X</td>
+<td style="text-align:center">X</td>
+<td style="text-align:center">X</td>
 </tr>
 <tr>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
+<td style="text-align:left"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
 </tr>
 <tr>
-<td>7-Segs</td>
-<td>8</td>
-<td>8</td>
-<td>8</td>
-<td>8</td>
-<td>8</td>
-<td>8</td>
-<td>8</td>
-<td>8</td>
+<td style="text-align:left">7-Segs</td>
+<td style="text-align:center">8</td>
+<td style="text-align:center">8</td>
+<td style="text-align:center">8</td>
+<td style="text-align:center">8</td>
+<td style="text-align:center">8</td>
+<td style="text-align:center">8</td>
+<td style="text-align:center">8</td>
+<td style="text-align:center">8</td>
 </tr>
 <tr>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
+<td style="text-align:left"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
 </tr>
 <tr>
-<td>Buttons</td>
-<td>o</td>
-<td>o</td>
-<td>o</td>
-<td>o</td>
-<td>o</td>
-<td>o</td>
-<td>o</td>
-<td>o</td>
+<td style="text-align:left">Buttons</td>
+<td style="text-align:center">o</td>
+<td style="text-align:center">o</td>
+<td style="text-align:center">o</td>
+<td style="text-align:center">o</td>
+<td style="text-align:center">o</td>
+<td style="text-align:center">o</td>
+<td style="text-align:center">o</td>
+<td style="text-align:center">o</td>
 </tr>
 </tbody>
 </table>
@@ -202,7 +218,7 @@ nnnn = 4 hex digits</p>
 <tbody>
 <tr>
 <td>VCC</td>
-<td>3.3v</td>
+<td>5v</td>
 </tr>
 <tr>
 <td>GND</td>
@@ -270,6 +286,12 @@ FF HALT</p>
 <p>Initially the system will be halted at the current address. Pressing button 3 will single-step through the program (pressing buttons 0-3 will cause the PC to skip to the corresponding address [running or skipping code in between? TBD]).</p>
 <p>Alternately the program may be run in real time by pressing button 5. Pressing this button again will halt the program.</p>
 <p>The HALT opcode will terminate a program and wait for keyboard input before switching to Program mode and zeroing the program counter.</p>
+<h4 id="special-instructions">Special Instructions</h4>
+<ul>
+<li>Pause</li>
+</ul>
+<p>If the instruction PAUSE is encountered in a program, the program will freeze at this point at display &#39;PAUSE...&#39;.
+The flags and registers maynow be inspected. Pressing key 4 sets the program running again.</p>
 <h4 id="error-messages">Error Messages</h4>
 <p>xxxxnoPE - non-existent operation at xxxx
 xxxxChar - illegal character at xxxx (when uploading program)</p>

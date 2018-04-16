@@ -41,6 +41,48 @@ Note - I think I'll change this rather 6502-like setup after reading the 6800 da
 Also quite interested in trying stack-oriented programming, 'check Here is a list of several stack manipulation operators, including SWAP' https://www.forth.com/starting-forth/2-stack-manipulation-operators-arithmetic/
 Also Stack Operations in 6800 doc.
 
+### Addressing Modes
+
+// copied from 6800 spec, need to tweak
+
+* ACC - Accumulator
+In accumulator addressing, either accumulator A or accumulator B is specified. These are 1- byte instructions.
+Ex: ABA adds the contetns of accumulators and stores the result in accumulator A
+
+* IMM - Immediate
+In immediate addressing, operand is located immediately after the opcode in the second byte of the instruction in program memory (except LDS and LDX where the operand is in the second and third bytes of the instruction). These are 2-byte or 3-byte instructions.
+Ex: LDAA #$25 loads the number (25)H into accumulator A
+
+* ABS - Absolute
+In absolute addressing, the address contained in the second byte of the instruction is used as the higher eight bits of the address of the operand. The third byte of the instruction is used as the lower eight bits of the address for the operand. This is an absolute address in the memory. These are 3-byte instructions.
+Ex: LDAA $1000 loads the contents of the memory address (1000)H into accumulator A
+
+* IDX - Indexed
+In indexed addressing, the address contained in the second byte of the instruction is added to the index register’s lowest eight bits. The carry is then added to the higher order eight bits of the index register. This result is then used to address memory. The modified address is held in a temporary address register so there is no change to the index register. These are 2-byte instructions.
+Ex: LDX #$1000 or LDAA $10,X
+Initially, LDX #$1000 instruction loads 1000H to the index register (X) using immediate addressing. Then LDAA $10,X instruction, using indexed addressing, loads the contents of memory address (10)H + X = 1010H into accumulator A.
+
+* IMP - Implied
+In the implied addressing mode, the instruction gives the address inherently (i.e, stack pointer, index register, etc.). Inherent instructions are used when no operands need to be fetched. These are 1 byte instructions.
+Ex: INX increases the contents of the Index register by one. The address information is "inherent" in the instruction itself.
+INCA increases the contents of the accumulator A by one.
+DECB decreases the contents of the accumulator B by one.
+
+* REL - Relative
+The relative addressing mode is used with most of the branching instructions on the 6802 microprocessor. The first byte of the instruction is the opcode. The second byte of the instruction is called the offset. The offset is interpreted as a signed 7-bit number. If the MSB (most significant bit) of the offset is 0, the number is positive, which indicates a forward branch. If the MSB of the offset is 1, the number is negative, which indicates a backward branch. This allows the user to address data in a range of -126 to +129 bytes of the present instruction. These are 2-byte instructions.
+
+nn = 2 hex digits
+nnnn = 4 hex digits
+
+| Mode                | Assembler Format | Description                             |
+| ------------------- | ---------------- | --------------------------------------- |
+| Immediate           | #nn              | Value is given immediately after opcode |
+| Absolute            | (nnnn)           | Value is contained in the given address |
+| Indexed             | nnnn, X          | -                                       |
+
+STAa 99 10 ; store acc A at 0199
+lo, hi
+
 **Flags**
 
 | Bit | Flag | Name     | Description                |
@@ -51,27 +93,13 @@ Also Stack Operations in 6800 doc.
 | 3   | C    | Carry    | -                          |
 | 7   | X    | Aux      | -                          |
 
-**Addressing Modes**
-
-nn = 2 hex digits
-nnnn = 4 hex digits
-
-| Mode                | Assembler Format | Description                             |
-| ------------------- | ---------------- | --------------------------------------- |
-| Immediate           | #nn              | Value is given immediately after opcode |
-| Absolute            | nnnn             | Value is contained in the given address |
-| Indexed             | nnnn, X          | -                                       |
-| Doubly-Indexed      | nnnn, X          | -                                       |
-| Absolute Indexed, Y | nnnn, Y          | -                                       |
-| Relative            | nnnn             | -                                       |
-
 ## I/O
 
 #### TM1638 Card
 
 |         | 0   | 1   | 2   | 3   | 4   | 5   | 6   | 7   |
-| ------- | --- | --- | --- | --- | --- | --- | --- | --- |
-| LEDs    | \*  | \*  | \*  | \*  | \*  | \*  | \*  | \*  |
+| :------ |:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| LEDs    |  N  |  V  |  Z  |  C  |  X  |  X  |  X  |  X  |
 |         |     |     |     |     |     |     |     |     |
 | 7-Segs  | 8   | 8   | 8   | 8   | 8   | 8   | 8   | 8   |
 |         |     |     |     |     |     |     |     |     |
@@ -81,7 +109,7 @@ nnnn = 4 hex digits
 
 | TM1368 | Arduino |
 | ------ | ------- |
-| VCC    | 3.3v    |
+| VCC    | 5v      |
 | GND    | GND     |
 | STB    | D4      |
 | CLK    | D7      |
@@ -153,6 +181,13 @@ Initially the system will be halted at the current address. Pressing button 3 wi
 Alternately the program may be run in real time by pressing button 5. Pressing this button again will halt the program.
 
 The HALT opcode will terminate a program and wait for keyboard input before switching to Program mode and zeroing the program counter.
+
+#### Special Instructions
+
+* Pause
+
+If the instruction PAUSE is encountered in a program, the program will freeze at this point at display 'PAUSE...'.
+The flags and registers maynow be inspected. Pressing key 4 sets the program running again.
 
 
 #### Error Messages

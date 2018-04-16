@@ -2,17 +2,13 @@
 0x10 LDAi   load accumulator A, immediate value  
 0x11 LDAa   load accumulator A, absolute ref'd address  
 0x12 LDAx   load accumulator A, indexed  
-0x13 LDAxx   load accumulator A, doubly-index  
 0x14 STAa   store accumulator A, absolute ref'd address  
 0x15 STAx   store accumulator A, indexed  
-0x16 STAxx   store accumulator A, doubly-indexed  
 0x18 LDBi   load accumulator B, immediate value  
 0x19 LDBa   load accumulator B, absolute ref'd address  
 0x1A LDBx   load accumulator B, indexed  
-0x1B LDBxx   load accumulator B, doubly-index  
 0x1C STBa   store accumulator B, absolute ref'd address  
 0x1D STBx   store accumulator B, indexed  
-0x1E STBxx   store accumulator B, doubly-indexed  
 0x20 AND   bitwise AND of accumulators A & B, result in A  
 0x21 OR   bitwise OR of accumulators A & B, result in A  
 0x22 XOR   bitwise XOR of accumulators A & B, result in A  
@@ -31,11 +27,9 @@
 0x35 BITAi   memory contents AND acc A, immediate, only status affected  
 0x36 BITAa   memory contents AND acc A, absolute, only status affected  
 0x37 BITAx   memory contents AND acc A, indexed, only status affected  
-0x38 BITAxx   memory contents AND acc A, doubly-indexed, only status affected  
 0x39 BITBi   memory contents AND acc B, immediate, only status affected  
 0x3A BITBa   memory contents AND acc B, absolute, only status affected  
 0x3B BITBx   memory contents AND acc B, indexed, only status affected  
-0x3C BITBxx   memory contents AND acc B, doubly-indexed, only status affected  
 0x40 PUSHXA   push accumulator A onto Auxiliary Stack  
 0x41 POPXA   pop accumulator A from Auxiliary Stack  
 0x42 PUSHXB   push accumulator B onto Auxiliary Stack  
@@ -49,11 +43,9 @@
 0x50 LSPi   load Stack Pointer, immediate  
 0x51 LSPa   load Stack Pointer, absolute  
 0x52 LSPx   load Stack Pointer, indexed  
-0x53 LSPxx   load Stack Pointer, doubly-indexed  
 0x54 LDXi   load Index Register, immediate  
 0x55 LDXa   load Index Register, absolute  
 0x56 LDXx   load Index Register, indexed  
-0x57 LDXxx   load Index Register, doubly-indexed  
 0x58 SPCa   store stack pointer, absolute  
 0x59 SPCx   store stack pointer, indexed  
 0x5A PUSHA   push accumulator A onto PC stack  
@@ -81,7 +73,6 @@
 0x81 ADDAi   add to accumulator A, immediate  
 0x82 ADDAa   add to accumulator A, absolute  
 0x83 ADDAx   add to accumulator A, indexed  
-0x84 ADDAxx   add to accumulator A, doubly-indexed  
 0x85 ADDBi   add to accumulator B, immediate  
 0x86 ADDBa   add to accumulator B, absolute  
 0x87 ADDBx   add to accumulator B, indexed  
@@ -89,7 +80,6 @@
 0x89 ADCAi   add with carry, accumulator A, immediate  
 0x8A ADCAa   add with carry, accumulator A, absolute  
 0x8B ADCAx   add with carry, accumulator A, indexed  
-0x8C ADCAxx   add with carry, accumulator A, doubly-indexed  
 0x8D ADCBi   add with carry, accumulator B, immediate  
 0x8E ADCBa   add with carry, accumulator B, absolute  
 0x8F ADCBx   add with carry, accumulator B, indexed  
@@ -97,7 +87,6 @@
 0x91 SUBAi   add to accumulator A, immediate  
 0x92 SUBAa   add to accumulator A, absolute  
 0x93 SUBAx   add to accumulator A, indexed  
-0x94 SUBAxx   add to accumulator A, doubly-indexed  
 0x95 SUBBi   add to accumulator B, immediate  
 0x96 SUBBa   add to accumulator B, absolute  
 0x97 SUBBx   add to accumulator B, indexed  
@@ -105,36 +94,28 @@
 0xA0 ANDAi   AND immediate memory contents with accumulator A, result in A  
 0xA1 ANDAa   AND absolute memory contents with accumulator A, result in A  
 0xA2 ANDAx   AND indexed memory contents with accumulator A, result in A  
-0xA3 ANDAxx   AND doubly-indexed memory contents with accumulator A, result in A  
 0xA4 ANDBi   AND immediate memory contents with accumulator B, result in B  
 0xA5 ANDBa   AND absolute memory contents with accumulator B, result in B  
 0xA6 ANDBx   AND indexed memory contents with accumulator B, result in B  
-0xA7 ANDBxx   AND doubly-indexed memory contents with accumulator B, result in B  
 0xA8 ORAi   OR immediate memory contents with accumulator A, result in A  
 0xA9 ORAa   OR absolute memory contents with accumulator A, result in A  
 0xAA ORAx   OR indexed memory contents with accumulator A, result in A  
-0xAB ORAxx   OR doubly-indexed memory contents with accumulator A, result in A  
 0xAC ORBi   OR immediate memory contents with accumulator B, result in B  
 0xAD ORBa   OR absolute memory contents with accumulator B, result in B  
 0xAE ORBx   OR indexed memory contents with accumulator B, result in B  
-0xAF ORBxx   OR doubly-indexed memory contents with accumulator B, result in B  
 0xB0 EORAi   EXOR immediate memory contents with accumulator A, result in A  
 0xB1 EORAa   EXOR absolute memory contents with accumulator A, result in A  
 0xB2 EORAx   EXOR absolute memory contents with accumulator A, result in  
-0xB3 EORAxx   EXOR doubly-indexed memory contents with accumulator A, result in A  
 0xB4 EORBi   EXOR immediate memory contents with accumulator B, result in B  
 0xB5 EORBa   EXOR absolute memory contents with accumulator B, result in B  
 0xB6 EORBx   EXOR indexed memory contents with accumulator B, result in B  
-0xB7 EORBxx   EXOR doubly-indexed memory contents with accumulator B, result in B  
 0xB8 CAB   compare A and B, only status flags affected  
 0xB9 CMPAi   compare immediate memory and accumulator A, only status flags affected  
 0xBA CMPAa   compare absolute memory and accumulator A, only status flags affected  
 0xBB CMPAx   compare indexed memory and accumulator A, only status flags affected  
-0xBC CMPAxx   compare doubly-indexed memory and accumulator A, only status flags affected  
 0xBD CMPBi   compare immediate memory and accumulator B, only status flags affected  
 0xBE CMPBa   compare absolute memory and accumulator B, only status flags affected  
 0xBF CMPBx   compare indexed memory and accumulator B, only status flags affected  
-0xC0 CMPBxx   compare doubly-indexed memory and accumulator B, only status flags affected  
 0xC1 CLRA   clear value of accumulator A  
 0xC2 CLRB   clear value of accumulator B  
 0xC3 CLRa   clear absolute memory  

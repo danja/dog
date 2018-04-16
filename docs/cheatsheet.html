@@ -1,0 +1,145 @@
+<h2 id="dog-1-user-interface-cheatsheet">DOG-1 USER Interface Cheatsheet</h2>
+<table>
+<thead>
+<tr>
+<th style="text-align:left"></th>
+<th style="text-align:center">0</th>
+<th style="text-align:center">1</th>
+<th style="text-align:center">2</th>
+<th style="text-align:center">3</th>
+<th style="text-align:center">4</th>
+<th style="text-align:center">5</th>
+<th style="text-align:center">6</th>
+<th style="text-align:center">7</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">LEDs</td>
+<td style="text-align:center">N</td>
+<td style="text-align:center">V</td>
+<td style="text-align:center">Z</td>
+<td style="text-align:center">C</td>
+<td style="text-align:center">*</td>
+<td style="text-align:center">*</td>
+<td style="text-align:center">*</td>
+<td style="text-align:center">*</td>
+</tr>
+<tr>
+<td style="text-align:left"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td style="text-align:left">7-Segs</td>
+<td style="text-align:center">-</td>
+<td style="text-align:center">P</td>
+<td style="text-align:center">C</td>
+<td style="text-align:center">-</td>
+<td style="text-align:center">M</td>
+<td style="text-align:center">I</td>
+<td style="text-align:center">O</td>
+<td style="text-align:center">P</td>
+</tr>
+<tr>
+<td style="text-align:left"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td style="text-align:left">Buttons</td>
+<td style="text-align:center">o</td>
+<td style="text-align:center">o</td>
+<td style="text-align:center">o</td>
+<td style="text-align:center">o</td>
+<td style="text-align:center">o</td>
+<td style="text-align:center">o</td>
+<td style="text-align:center">o</td>
+<td style="text-align:center">o</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Flags</strong></p>
+<table>
+<thead>
+<tr>
+<th>Bit</th>
+<th>Flag</th>
+<th>Name</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>N</td>
+<td>Negative</td>
+<td>Set if bit 7 of ACC is set</td>
+</tr>
+<tr>
+<td>1</td>
+<td>V</td>
+<td>Overflow</td>
+<td>-</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Z</td>
+<td>Zero</td>
+<td>-</td>
+</tr>
+<tr>
+<td>3</td>
+<td>C</td>
+<td>Carry</td>
+<td>-</td>
+</tr>
+<tr>
+<td>4-7</td>
+<td>X</td>
+<td>Aux</td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<p>The functionality of the I/O will depend on the system&#39;s mode : <strong>Program</strong> or <strong>Run</strong>. Display 4 shows the current mode, P or R.</p>
+<p>Push-button 4 switches between these modes.
+At any time, pressing buttons 4 and 5 <strong>together</strong> will reset the PC to 0000.</p>
+<h3 id="program-mode">Program Mode</h3>
+<p>Pressing the buttons 0-3, 6-7 will increment the value corresponding to that of the display above it. Programming is achieved by pressing button 3 to increment the PC (with overflow occurring, counting up on displays 0-2). Pressing button 7 will increment the value on display 7 (<em>without</em> overflowing to display 6), ditto for button 6/display 6, together providing the value at the given address.</p>
+<p>Pressing button 5 will switch the response from increment to decrement. The PC buttons/display <em>does</em> carry values and wrap at max and min (0000). The code buttons/display act independently to each other and don&#39;t wrap in the &lt;0 direction.</p>
+<p>Pressing button 4 will switch to <strong>Run</strong> mode.</p>
+<h4 id="double-key-presses">Double Key Presses</h4>
+<ul>
+<li>0 &amp; 1 - full-on reset &amp; wipe</li>
+<li>4 &amp; 5 - reset pc</li>
+<li>0 &amp; 4 - display Accumulators A, B</li>
+<li>0 &amp; 5 - display Index Register</li>
+<li>0 &amp; 6 - display PC Stack Pointer</li>
+<li><p>0 &amp; 7 - display Auxiliary Stack Pointer &amp; status</p>
+</li>
+<li><p>0 &amp; 3 - flip from single-step to free run</p>
+</li>
+</ul>
+<h3 id="run-mode">Run Mode</h3>
+<p>Initially the system will be halted at the current address. Pressing button 3 will single-step through the program (pressing buttons 0-3 will cause the PC to skip to the corresponding address [running or skipping code in between? TBD]).</p>
+<p>Alternately the program may be run in real time by pressing button 5. Pressing this button again will halt the program.</p>
+<p>The HALT opcode will terminate a program and wait for keyboard input before switching to Program mode and zeroing the program counter.</p>
+<h4 id="special-instructions">Special Instructions</h4>
+<ul>
+<li>Pause</li>
+</ul>
+<p>If the instruction PAUSE is encountered in a program, the program will freeze at this point at display &#39;PAUSE...&#39;.
+The flags and registers maynow be inspected. Pressing key 4 sets the program running again.</p>

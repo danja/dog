@@ -1,6 +1,22 @@
-10 LDAi
-66 valuetemp
-14 STAa
-07 lo // was 99
-00 hi // was 01
-FF
+; DEBUG
+LDAi F6 ; put 0xF6 in acc A
+STAa 99 10 ; store acc A at 0199
+LDBa  ; load acc B from 0199
+CAB ; compare A & B
+BZS 02; branch if zero set
+ERR
+HALT
+OK
+HALT
+
+; 0 through 127 are, in hex, $00 through $7F, respectively.
+; -128 through -1 are, in hex, $80 through $FF, respectively.
+
+; test LDAi & BZS
+LDAi F6 ; put 0xF6 in acc A
+BZS 01 ; skip next if zero set
+ERR
+LDAi
+
+LDAi 81  ; negative, non-zero
+PAUSE
