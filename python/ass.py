@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import sys
+import argparse
 
 src = "../src/dog-1/dog-1.ino"
 
@@ -15,6 +16,10 @@ dict = {}
 hex = []
 codes = []
 comments = []
+
+parser = argparse.ArgumentParser(description='Minimal assembler for DOG-1.')
+parser.add_argument('--source-file', type=argparse.FileType('r'))
+## args.sqlite_file.name
 
 # read source file
 def load_dictionary():

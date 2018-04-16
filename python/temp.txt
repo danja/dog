@@ -20,3 +20,14 @@ LDAi
 
 LDAi 81  ; negative, non-zero
 PAUSE
+
+
+LDAi 05 ; positive, non-zero
+LDAi 00 ; zero
+LDAi 81 ; negative
+HALT
+
+
+BZS 02; branch if zero set
+ERR
+OK

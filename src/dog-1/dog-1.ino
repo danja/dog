@@ -385,7 +385,6 @@ void doOperation() {
     // ############### system ###############
 
     case NOP: // no operation
-      showError("tESt");
       return;
 
     //accumulator A load and store
@@ -396,8 +395,7 @@ void doOperation() {
       return;
 
     case LDAa:                            // Load accumulator A absolute
-      LDa[0];
-      showError("tESt");
+      LDa(0);
       return;
 
     case LDAx:                            // Load accumulator A indexed (6502 calls it Indexed Indirect)
@@ -421,8 +419,7 @@ void doOperation() {
       return;
 
     case LDBa:                            // Load accumulator B absolute
-      LDa[1];
-      showError("tESt");
+      LDa(1);
       return;
 
     case LDBx:                            // Load accumulator B indexed (6502 calls it Indexed Indirect)
@@ -440,7 +437,30 @@ void doOperation() {
       showError("tESt");
       return;
 
+    //
+    case BZS:                           // branch if zero set
+      pc++;
+      if (getFlag(ZERO)) {
+        pc += program[pc]; // TODO overflow check
+      }
+      return;
+
     // ############### acc logical operators ###############
+
+    case CAB:                             // compare B with A, only NVZ status flags affected
+      if (acc[0] == acc[1]) {
+        setFlag(ZERO, true);
+        setFlag(OVERFLOW, false);
+        setFlag(NEGATIVE, false);
+        return;
+      } else {
+        setFlag(ZERO, false);
+      }
+      temp = acc[0] + (~acc[1] + 1);
+      setFlag(CARRY, temp & 128);
+      // C bit set if subtraction would require a borrow in the most significant bit of result, otherwise cleared. V flag????
+
+      return;
 
     case AND: // bitwise AND of accumulators A & B, result in A
       acc[0] = acc[0] & acc[1];
@@ -646,11 +666,12 @@ void doOperation() {
       return;
 
     case OK:
-      showError("tESt");
+      tm.displayText("- OK -");
+      waitForButton();
       return;
 
     case ERR:
-      showError("tESt");
+      showError("Err.");
       return;
 
     // ## and finally... ##
@@ -699,37 +720,30 @@ void setFlag(uint8_t flag, boolean value) {
   if (value) {
     status = status | mask;
   } else {
-  status = status & ~mask;
+    status = status & ~mask;
   }
-   showStatus();
+  showStatus();
+}
+
+boolean getFlag(uint8_t flag) {
+  uint8_t mask = (1 << flag);
+  return status & mask;
 }
 
 void testFlags() {
-for (uint8_t index = 0; index < 8; ++index) {
-  setFlag(index, true);
-  delay(200);
-}
-for (uint8_t index = 0; index < 8; ++index) {
-  setFlag(index, false);
-  delay(200);
-}
 
-for (uint8_t index = 0; index < 256; ++index) {
-  // setFlag(index, false);
-  status = index;
-  showStatus();
-  delay(200);
-}
-
-  /*
-  for (uint8_t mask = 0; mask < 0x08; ++mask) {
-    for (uint8_t index = 0; index < 4; ++index) {
-      uint8_t val = (mask >> index) & 1;
-      setFlag(val, true);
-      delay(500);
-    }
+  for (uint8_t index = 0; index < 8; ++index) {
+    setFlag(index, true);
+    delay(200);
   }
-  */
+  for (uint8_t index = 0; index < 8; ++index) {
+    setFlag(index, false);
+    delay(200);
+  }
+
+  setFlag(ZERO, true);
+  setFlag(NEGATIVE, getFlag(ZERO));
+  delay(1000);
 }
 
 void doAccZero(uint8_t id) {
@@ -743,15 +757,8 @@ void doAccNeg(uint8_t id) {
 void LDi(uint8_t id) {             // Load accumulator <id> immediate
   acc[id] = program[++pc]; // move to next position in program, load into acc
   setFlag(OVERFLOW, false);
-
   doAccNeg(id);
-  flashMessage("Acc");
-  flashMessage(acc[id]);
-  flashMessage("F");
-  flashMessage(status); // with 81, status is 1 here
   doAccZero(id);
-  flashMessage("F2"); // but 0 here
-  flashMessage(status);
 }
 
 void LDa(uint8_t id) { // Load accumulator <id> absolute
@@ -844,20 +851,21 @@ void display() {
    ############################# Serial Loading of Programs ###############################
 */
 void doSerialIn() {
-  uint8_t hi = Serial.read();
-  uint8_t lo = Serial.read();
-  hi = hexCharToValue(hi);
-  lo = hexCharToValue(lo);
-  uint8_t code = hi * 16 + lo;
-  program[pc++] = code;
-  stepLED();
-
-  if (code == 0xFF) {
-    flashMessage("Loaded.");
-    pc = 0;
-    display();
-    showStatus();
+  while (Serial.available()) {
+    uint8_t hi = Serial.read();
+    uint8_t lo = Serial.read();
+    hi = hexCharToValue(hi);
+    lo = hexCharToValue(lo);
+    uint8_t code = hi * 16 + lo;
+    program[pc++] = code;
+    stepLED();
   }
+
+  flashMessage("Loaded.");
+  pc = 0;
+  display();
+  showStatus();
+
 }
 
 uint8_t hexCharToValue(uint8_t hexChar) {

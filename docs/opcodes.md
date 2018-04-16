@@ -136,6 +136,7 @@
 0xDD DECX   increment Index Register  
 0xE0 USE   capture hardware  
 0xE1 UNUSE   release hardware  
+0xF9 TEST   run test routine  
 0xFA RND   load accumulators A & B with random values  
 0xFB PAUSE   wait for keypress  
 0xFC DEBUG   sets/reset debugOn  

@@ -1,5 +1,8 @@
-
-LDAi 05 ; positive, non-zero
-LDAi 00 ; zero
-LDAi 81 ; negative
+LDAi F6 ; put 0xF6 in acc A
+STAa 99 00 ; store acc A at 0099
+LDBa 99 00  ; load acc B from 0099
+CAB ; compare A & B
+BZS 02; branch if zero set
+ERR
+OK
 HALT
