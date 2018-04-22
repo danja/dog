@@ -9,7 +9,23 @@ I'm writing up the [DOG-1 Manual](https://github.com/danja/dog/blob/master/docs/
 
 ### Status  
 
-**2018-04-16** : made a mess of my TM1638 lib, took me a while to fix that. Then I got in a mess with my flags. Turned out I'd put in !x rather than ~x for bitwise negation, took me ages to spot. But pretty much back on track. Got this to run ok:
+**2018-04-22** : to try a 'proper' program, filled in the opcodes to support this - the Galois pseudorandom number generator as described in [Wikipedia](https://en.wikipedia.org/wiki/Linear-feedback_shift_register#Galois_LFSRs).
+
+<pre>
+LDAi AC ; put 0xAC in acc A
+LDBi E1 ; put 0xE1 in acc B
+LSR ; shift right (and into carry)
+BCC FE; branch -2 if carry clear
+EORAi B4 ; toggle mask
+EORBi 00
+PAUSE
+BZC FB ; branch up to the shift
+HALT
+</pre>
+
+Unfortunately, figuring out the correct branching - using 2's complement jumps back - gets mighty confusing. So right now it's waiting for me to sort out the single-stepping and a suitable test or two.
+
+2018-04-16 : made a mess of my TM1638 lib, took me a while to fix that. Then I got in a mess with my flags. Turned out I'd put in !x rather than ~x for bitwise negation, took me ages to spot. But pretty much back on track. Got this to run ok:
 
 <pre>
 LDAi F6 ; put 0xF6 in acc A

@@ -70,6 +70,8 @@ TM1638lite tm(4, 7, 8);
 #define ROLB 0x27 // rotate accumulator B bits left
 #define RORB 0x28 // rotate accumulator B bits right
 #define SWAP 0x29  // swap values between accumulators A & B
+#define LSL 0x2A // logical shift left through both accumulators
+#define LSR 0x2B // logical shift right through both accumulators
 
 // status register - flag ops
 #define CLRS 0x30 // clear status
@@ -123,9 +125,9 @@ TM1638lite tm(4, 7, 8);
 #define POPB 0x5D  // pop accumulator B onto PC stack
 
 // unconditional jumps
-#define JMPi 0x60 // immediate jump (BRA)
+#define JMPi 0x60 // immediate jump 
 #define JMPa 0x61 // absolute jump
-#define JMPr 0x63 // relative jump
+#define BRA 0x63 // relative jump
 
 // subroutine jumps
 #define JSRa 0x64 // jump to subroutine absolute
@@ -352,7 +354,7 @@ void loop() {
 
       if (mode == RUN_MODE) {
         if (runMode == STEP) { // RUN-STEP FIX ME!
-      //   waitForButton();
+     //     waitForButton();
 
         }
         doOperation();
@@ -414,8 +416,7 @@ void doOperation() {
     // ############### accumulator B load and store
 
     case LDBi:               // Load accumulator B immediate
-      LDi[1];
-      showError("tESt");
+      LDi(1);
       return;
 
     case LDBa:                            // Load accumulator B absolute
@@ -438,10 +439,38 @@ void doOperation() {
       return;
 
     //
+
+    case BRA:
+      pc++;
+      pc += (int8_t)program[pc];
+      return;
+
     case BZS:                           // branch if zero set
       pc++;
       if (getFlag(ZERO)) {
-        pc += program[pc]; // TODO overflow check
+        pc += (int8_t)program[pc]; // TODO overflow check, 2's comp
+      }
+      return;
+
+    case BZC:                           // branch if zero clear
+      pc++;
+      if (~getFlag(ZERO)) {
+        pc += (int8_t)program[pc]; // TODO overflow check, 2's comp
+      }
+      return;
+
+    //
+    case BCS:                           // branch if carry set
+      pc++;
+      if (getFlag(CARRY)) {
+        pc += (int8_t)program[pc]; // TODO overflow check, 2's comp
+      }
+      return;
+
+    case BCC:                           // branch if carry clear
+      pc++;
+      if (~getFlag(CARRY)) {
+        pc += (int8_t)program[pc]; // TODO overflow check, 2's comp
       }
       return;
 
@@ -507,6 +536,24 @@ void doOperation() {
       showError("tESt");
       return;
 
+    case LSR: // shift right through both accumulators 0 -> A -> B -> CARRY
+
+      setFlag(CARRY, acc[1] & 1);
+      // uint8_t temp = acc[1] & 1; // get 0th bit of acc B
+      acc[1] = acc[1] >> 1; // shift right
+      acc[1] = ((acc[0] & 1) << 7) | acc[1]; // move lsb of acc A across
+      acc[0] = acc[0] >> 1;
+      setFlag(ZERO, acc[0] == 0);
+      return;
+
+    case EORAi:
+      EORi(0);
+      return;
+
+    case EORBi:
+      EORi(1);
+      return;
+
     case SWAP: // swap values between accumulator A & B
       temp = acc[0];
       acc[0] = acc[1];
@@ -544,6 +591,20 @@ void doOperation() {
       showError("tESt");
       return;
 
+    /*
+       #define INCA 0xD0 // increment accumulator A
+      #define INCB 0xD1 // increment accumulator A
+      #define INCa 0xD2 // increment absolute address
+      #define INCx 0xD3 // increment indexed address
+      #define INCS 0xD4  // increment PC Stack pointer
+      #define INXS 0xD5  // increment Auxiliary Stack pointer
+      #define INCX 0xD6 // increment Index Register
+    */
+
+    case INCA:
+      acc[0] = acc[0] + 1 ;
+      doAccFlags(0);
+      return;
     /*
          bits 7 and 6 of operand are transfered to bit 7 and 6 of SR (N,V);
          the zeroflag is set to the result of operand AND accumulator.
@@ -662,7 +723,9 @@ void doOperation() {
 
     case PAUSE: //
       pause = true;
-      tm.displayText("PAUSE...");
+      displayHex(4, 2, acc[0]);
+      displayHex(6, 2, acc[1]);
+      waitForButton();
       return;
 
     case OK:
@@ -746,19 +809,15 @@ void testFlags() {
   delay(1000);
 }
 
-void doAccZero(uint8_t id) {
+void doAccFlags(uint8_t id) {
   setFlag(ZERO, acc[id] == 0); /////////////////////////// acc[id] == 0
-}
-
-void doAccNeg(uint8_t id) {
   setFlag(NEGATIVE, acc[id] & 128);
 }
 
 void LDi(uint8_t id) {             // Load accumulator <id> immediate
   acc[id] = program[++pc]; // move to next position in program, load into acc
   setFlag(OVERFLOW, false);
-  doAccNeg(id);
-  doAccZero(id);
+  doAccFlags(id);
 }
 
 void LDa(uint8_t id) { // Load accumulator <id> absolute
@@ -793,6 +852,12 @@ void ROR(uint8_t id) { // rotate left accumulator <id>
   acc[id] = acc[id] >> 1; // shift right
   acc[id] = acc[id] + 128 * (status & CARRY); // load carry flag to bit 7
   status = status | temp; // put previous 7th bit in carry flag
+}
+
+void EORi(uint8_t id) { // EXOR
+  acc[id] = acc[id] ^ program[++pc]; // move to next position in program, exor with acc acc
+  setFlag(OVERFLOW, false);
+  doAccFlags(id);
 }
 
 // ####################################################################################

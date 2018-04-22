@@ -19,6 +19,8 @@
 0x27 ROLB   rotate accumulator B bits left  
 0x28 RORB   rotate accumulator B bits right  
 0x29 SWAP   swap values between accumulators A & B  
+0x2A LSL   logical shift left through both accumulators  
+0x2B LSR   logical shift right through both accumulators  
 0x30 CLRS   clear status  
 0x31 SETS   set status  
 0x32 SETC   set carry  
@@ -52,9 +54,9 @@
 0x5B POPA   pop accumulator A onto PC stack  
 0x5C PUSHB   push accumulator B onto PC stack  
 0x5D POPB   pop accumulator B onto PC stack  
-0x60 JMPi   immediate jump (BRA)  
+0x60 JMPi   immediate jump  
 0x61 JMPa   absolute jump  
-0x63 JMPr   relative jump  
+0x63 BRA   relative jump  
 0x64 JSRa   jump to subroutine absolute  
 0x65 JSRr   jump to subroutine relative (BSR)  
 0x66 RTS   return from subroutine  

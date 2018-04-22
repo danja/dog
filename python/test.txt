@@ -1,8 +1,9 @@
-LDAi F6 ; put 0xF6 in acc A
-STAa 99 01 ; store acc A at 0199
-LDBa 99 01  ; load acc B from 0199
-CAB ; compare A & B
-BZS 01; branch if zero set
-ERR ; display Err
-OK ; display ok
+LDAi AC ; put 0xAC in acc A
+LDBi E1 ; put 0xE1 in acc B
+LSR ; shift right (and into carry)
+BCC FE; branch -2 if carry clear
+EORAi B4 ; toggle mask
+EORBi 00
+PAUSE
+BZC FB ; branch up to the shift
 HALT
