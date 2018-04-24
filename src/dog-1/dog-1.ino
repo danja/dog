@@ -801,13 +801,13 @@ void doOperation() {
 
 void doTone() {
   unsigned int note = notes[program[++pc]];
-  unsigned long duration = 30000 / (program[++pc] * tempo);
+  unsigned long duration = program[++pc] * 6000 / tempo;
   tone(speakerPin, note, duration);
   delay(duration);
 }
 
 void doRest() {
-  unsigned long duration = 30000 / (program[++pc] * tempo);
+  unsigned long duration = program[++pc] * 6000 / tempo;
   delay(duration);
 }
 /**
@@ -972,7 +972,7 @@ static uint8_t chars;
 
 void receiveProg() {
 
- static uint8_t ndx = 0;
+  static uint8_t ndx = 0;
   char startMarker = '<';
   char endMarker = '>';
   char rc;
@@ -991,7 +991,7 @@ void receiveProg() {
       else {
         //  receivedChars[ndx] = '\0'; // terminate the string
         recvInProgress = false;
-  //      ndx = 0;
+        //      ndx = 0;
         newData = true;
         chars = ndx;
       }
@@ -1005,8 +1005,8 @@ void receiveProg() {
 
 
 void translateProg() {
-  
- // flashMessage("Loading");
+
+  // flashMessage("Loading");
 
   if (newData == true) {
     //  Serial.print("This just in ... ");
@@ -1025,6 +1025,10 @@ void translateProg() {
       stepLED();
     }
     newData = false;
+    flashMessage("Loaded.");
+    pc = 0;
+    display();
+    showStatus();
   }
 }
 
@@ -1097,13 +1101,13 @@ uint8_t hexCharToValue(uint8_t hexChar) {
   if (hexChar >= 97 && hexChar <= 102) return hexChar - 87; // 'a'...'f' -> 10...15
 
   while (Serial.available() > 0) {
-   Serial.read();
+    Serial.read();
   }
   showError("Char");
   //  return 255; // error
   mode = PROG_MODE;
   initRegisters();
-    display();
+  display();
   showStatus();
 }
 
