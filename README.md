@@ -5,11 +5,20 @@
 
 Playing with a cheapo TM1638 card driven by an Arduino Uno. Trying to put together a 1970's-style single-board computer a bit like the KIM-1, except with two boards and my own instruction set etc.
 
-I'm writing up the [DOG-1 Manual](https://github.com/danja/dog/blob/master/docs/manual.md) as I go along.
+I'm writing up the [DOG-1 Manual](https://github.com/danja/dog/blob/master/docs/manual.md) as I go along. I did a short intro video early on : [DOG-1 Intro](https://www.youtube.com/watch?v=qjk-y1qbj7w).
 
 ### Status  
 
-**2018-04-22** : to try a 'proper' program, filled in the opcodes to support this - the Galois pseudorandom number generator as described in [Wikipedia](https://en.wikipedia.org/wiki/Linear-feedback_shift_register#Galois_LFSRs).
+**2018-04-24** : today added the opcode TONE <note> <duration>. That in itself was pretty trivial (although I do need to finesse the duration a bit). What wasn't so straightforward was that on trying a longer program that I have before, it showed up a major problem with my serial interface code (for uploading programs via Python on the laptop). It was failing after 32 instructions - turns out the Arduino Uno has a 64 byte buffer, and it's really easy to make mistakes. Had to rework the whole interface. But I finally managed to get it going, and so made another little video : [DOG-1 Bachs!](https://youtu.be/eEgXBOtdvvg).
+Based around assembler like this:
+
+<pre>
+TONE 13 04
+REST 04
+HALT
+</pre>
+
+2018-04-22 : to try a 'proper' program, filled in the opcodes to support this - the Galois pseudorandom number generator as described in [Wikipedia](https://en.wikipedia.org/wiki/Linear-feedback_shift_register#Galois_LFSRs).
 
 <pre>
 LDAi AC ; put 0xAC in acc A
