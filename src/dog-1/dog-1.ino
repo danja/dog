@@ -341,9 +341,9 @@ void welcome() {
    ###############################################################
 */
 void setup() {
-  Serial.begin(9600);
   welcome(); // display welcome message
   initRegisters();
+  Serial.begin(9600);
 }
 
 /**
@@ -351,39 +351,48 @@ void setup() {
    ########################  LOOP #################################
    ################################################################
 */
+static boolean recvInProgress = false;
+
 void loop() {
 
   tm.reset(); // reset display hardware
 
   while (1) { // loop proper
+    if (!recvInProgress) {
+      handleButtons();
 
-    handleButtons();
+      // trap overflows
+      if (pc >= MAX_PROG_SIZE) pc = 0;
+      if (pc < 0) pc = MAX_PROG_SIZE - 1;
 
-    // trap overflows
-    if (pc >= MAX_PROG_SIZE) pc = 0;
-    if (pc < 0) pc = MAX_PROG_SIZE - 1;
+      showStatus();
 
-    showStatus();
+      if (!pause) {
+        display();
 
-    if (!pause) {
-      display();
+        if (mode == RUN_MODE) {
+          if (runMode == STEP) { // RUN-STEP FIX ME!
+            //     waitForButton();
 
-      if (mode == RUN_MODE) {
-        if (runMode == STEP) { // RUN-STEP FIX ME!
-          //     waitForButton();
-
+          }
+          doOperation();
+          pc++;
         }
-        doOperation();
-        pc++;
       }
-    }
 
-    delay(100);
-    if (Serial.available()) {
-      doSerialIn();
+      //   delay(100);
+
+      //   if (Serial.available() > 0) {
+      //   doSerialIn();
+      // }
     }
+    receiveProg();
+    translateProg();
+
   }
 }
+
+
 
 /*
    ###########################################################
@@ -794,6 +803,7 @@ void doTone() {
   unsigned int note = notes[program[++pc]];
   unsigned long duration = 30000 / (program[++pc] * tempo);
   tone(speakerPin, note, duration);
+  delay(duration);
 }
 
 void doRest() {
@@ -955,16 +965,124 @@ void display() {
 /**
    ############################# Serial Loading of Programs ###############################
 */
-void doSerialIn() {
-  while (Serial.available()) {
-    uint8_t hi = Serial.read();
-    uint8_t lo = Serial.read();
-    hi = hexCharToValue(hi);
-    lo = hexCharToValue(lo);
-    uint8_t code = hi * 16 + lo;
-    program[pc++] = code;
-    stepLED();
+
+boolean newData = false;
+uint8_t buffer [256];
+static uint8_t chars;
+
+void receiveProg() {
+
+ static uint8_t ndx = 0;
+  char startMarker = '<';
+  char endMarker = '>';
+  char rc;
+
+  while (Serial.available() > 0 && newData == false) {
+    rc = Serial.read();
+
+    if (recvInProgress == true) {
+      if (rc != endMarker) {
+        buffer[ndx] = rc;
+        ndx++;
+        if (ndx >= MAX_PROG_SIZE) {
+          ndx = MAX_PROG_SIZE - 1;
+        }
+      }
+      else {
+        //  receivedChars[ndx] = '\0'; // terminate the string
+        recvInProgress = false;
+  //      ndx = 0;
+        newData = true;
+        chars = ndx;
+      }
+    }
+
+    else if (rc == startMarker) {
+      recvInProgress = true;
+    }
   }
+}
+
+
+void translateProg() {
+  
+ // flashMessage("Loading");
+
+  if (newData == true) {
+    //  Serial.print("This just in ... ");
+    //  Serial.println(receivedChars);
+
+    for (uint8_t pos = 0; pos < chars - 1; pos = pos + 2) {
+      uint8_t hi = buffer[pos];
+      uint8_t lo = buffer[pos + 1];
+      Serial.write(hi);
+      Serial.write(lo);
+      hi = hexCharToValue(hi);
+      lo = hexCharToValue(lo);
+      uint8_t code = hi * 16 + lo;
+      program[pc++] = code;
+      delay(20);
+      stepLED();
+    }
+    newData = false;
+  }
+}
+
+void doSerialIn() {
+
+
+  // void serialEvent() {
+
+  flashMessage("Loading");
+
+  /*
+    static uint8_t buffer[256];
+
+    static uint8_t pos;              // position of next write
+
+    while (Serial.available() && pos < sizeof buffer - 1) {
+
+      // Read incoming byte.
+      uint8_t  c = Serial.read();
+      buffer[pos++] = c;
+
+      // Echo received message.
+      if (c == '\n') {            // \n means "end of message"
+        buffer[pos] = '\0';     // terminate the buffer
+        //    Serial.print(buffer);   // send echo
+        pos = 0;                // reset to start of buffer
+      }
+    }
+
+    for (pos = 0; pos < sizeof buffer - 2; pos = pos + 2) {
+      uint8_t hi = buffer[pos];
+      uint8_t lo = buffer[pos + 1];
+      hi = hexCharToValue(hi);
+      lo = hexCharToValue(lo);
+      uint8_t code = hi * 16 + lo;
+      program[pc++] = code;
+      delay(20);
+      stepLED();
+    }
+  */
+  // uint8_t buffer = Serial.available();
+  /*
+      while (Serial.available()) {
+
+       // displayHex(6, 2, buffer);
+        uint8_t hi = Serial.read();
+        uint8_t lo = Serial.read();
+        hi = hexCharToValue(hi);
+        lo = hexCharToValue(lo);
+        //  if(hi > 16 || lo > 16) continue;
+        uint8_t code = hi * 16 + lo;
+        program[pc++] = code;
+        // delay(20);
+        stepLED();
+      }
+  */
+
+
 
   flashMessage("Loaded.");
   pc = 0;
@@ -977,7 +1095,16 @@ uint8_t hexCharToValue(uint8_t hexChar) {
   if (hexChar >= 48 && hexChar <= 57) return hexChar - 48; // '0'...'9' -> 0...9
   if (hexChar >= 65 && hexChar <= 70) return hexChar - 55; // 'A'...'F' -> 10...15
   if (hexChar >= 97 && hexChar <= 102) return hexChar - 87; // 'a'...'f' -> 10...15
+
+  while (Serial.available() > 0) {
+   Serial.read();
+  }
   showError("Char");
+  //  return 255; // error
+  mode = PROG_MODE;
+  initRegisters();
+    display();
+  showStatus();
 }
 
 
