@@ -13,6 +13,8 @@
 */
 TM1638lite tm(4, 7, 8);
 
+const int speakerPin = 9;
+
 // TM1638lite tm = TM1638lite::TM1638lite(4, 7, 8);
 
 
@@ -242,6 +244,10 @@ TM1638lite tm(4, 7, 8);
 #define USE 0xE0 // capture hardware 
 #define UNUSE 0xE1 // release hardware 
 
+#define TEMPO 0xF6 // set tempo
+#define TONE 0xF7 // play a tone
+#define REST 0xF8 // musical rest
+
 //debugging/testing
 #define TEST 0xF9 // run test routine
 #define RND 0xFA // load accumulators A & B with random values
@@ -255,6 +261,16 @@ TM1638lite tm(4, 7, 8);
 
 // END OPCODES # leave this line in place, used by ass.py
 
+uint8_t tempo = 120;
+
+// correspond to MIDI notes starting at B0
+static const unsigned int notes[] = {31, 33, 35, 37, 39, 41, 44, 46, 49, 52, 55, 58, 62, 65, 69, 73, 78, 82, 87, 93, 98,
+                                     104, 110, 117, 123, 131, 139, 147, 156, 165, 175, 185, 196, 208, 220, 233, 247, 262,
+                                     277, 294, 311, 330, 349, 370, 392, 415, 440, 466, 494, 523, 554, 587, 622, 659, 698,
+                                     740, 784, 831, 880, 932, 988, 1047, 1109, 1175, 1245, 1319, 1397, 1480, 1568, 1661,
+                                     1760, 1865, 1976, 2093, 2217, 2349, 2489, 2637, 2794, 2960, 3136, 3322, 3520, 3729,
+                                     3951, 4186, 4435, 4699, 4978
+                                    };
 boolean debugOn = false;
 
 boolean mode = PROG_MODE;
@@ -354,7 +370,7 @@ void loop() {
 
       if (mode == RUN_MODE) {
         if (runMode == STEP) { // RUN-STEP FIX ME!
-     //     waitForButton();
+          //     waitForButton();
 
         }
         doOperation();
@@ -707,6 +723,19 @@ void doOperation() {
     // increment/decrement registers
     // hardware-related
 
+    // ################# fun
+    case TEMPO:
+      tempo = program[++pc];
+      return;
+
+    case TONE:
+      doTone();
+      return;
+
+    case REST:
+      doRest();
+      return;
+
     // ################# debugging/testing
 
     case TEST:
@@ -760,6 +789,17 @@ void doOperation() {
    ##################### Operation Helpers #####################
    #############################################################
 */
+
+void doTone() {
+  unsigned int note = notes[program[++pc]];
+  unsigned long duration = 30000 / (program[++pc] * tempo);
+  tone(speakerPin, note, duration);
+}
+
+void doRest() {
+  unsigned long duration = 30000 / (program[++pc] * tempo);
+  delay(duration);
+}
 /**
    read two bytes from program (updating PC 2), combine & return
 */
