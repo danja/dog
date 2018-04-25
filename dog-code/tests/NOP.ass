@@ -1,0 +1,7 @@
+; do nothing 5 times
+NOP
+NOP
+NOP
+NOP
+DUMP
+HALT

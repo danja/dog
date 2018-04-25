@@ -245,13 +245,14 @@ const int speakerPin = 9;
 #define UNUSE 0xE1 // release hardware 
 
 
-#define TEMPO 0xF4 // set tempo
-#define REST 0xF5 // musical rest
-#define TONE 0xF6 // play a tone, immediate
-#define TONEAB 0xF7 // play a tone, values from accumulators
-#define TONEx 0xF8 // play a tone, value from address in index reg
+#define TEMPO 0xF0 // set tempo
+#define REST 0xF1 // musical rest
+#define TONE 0xF2 // play a tone, immediate
+#define TONEAB 0xF3 // play a tone, values from accumulators
+#define TONEx 0xF4 // play a tone, value from address in index reg
 
 //debugging/testing
+#define DUMP 0xF8 // send register contents to serial
 #define TEST 0xF9 // run test routine
 #define RND 0xFA // load accumulators A & B with random values
 #define PAUSE 0xFB // wait for keypress
@@ -311,7 +312,7 @@ void initRegisters() {
   acc[1] = 0xEF; // accumulator B, 8-bits
   xReg = 0; // index register, 16 bits
   pcStackP = 0; // PC stack pointer, 16 bits
-  xStackP = 0; // ALU stack pointer, 8 bits
+  xStackP = 0; // Auxiliary stack pointer, 8 bits
   status = 0x30; // status register (flags), initialised with a vaguely helpful test pattern, LEDs over system displays only (4 & 5)
 
   for (unsigned int i = 0; i < MAX_PROG_SIZE; i++) { // wipe all instructions
@@ -788,6 +789,17 @@ void doOperation() {
 
     case TEST:
       testFlags();
+      return;
+
+    case DUMP:
+      Serial.begin(9600);
+      Serial.println(pc);
+      Serial.println(acc[0]);
+      Serial.println(acc[1]);
+      Serial.println(xReg);
+      Serial.println(pcStackP);
+      Serial.println(xStackP);
+      Serial.println("DONE");
       return;
 
     case DEBUG:// flips the state of debug

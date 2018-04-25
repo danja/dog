@@ -5,13 +5,16 @@ import os.path
 import serial
 import threading
 import time
-
+import os
 
 port = '/dev/ttyACM0'
 port1 = '/dev/ttyACM1'
 
 if not os.path.exists(port):
     port = port1
+
+tests_dir = "../dog-code/tests"
+extn = ".dog"
 
 infile = "prog.txt"
 
@@ -25,30 +28,42 @@ if args_dict["input"]:
 if args_dict["port"]:
     port = args_dict["port"]
 
-# print port
-
-
-
 ser = serial.Serial(port, 9600)
 
 # TODO replace with handshake
 print "Sleeping while Arduino reboots..."
 time.sleep(4)
 
-data = ""
+# --------------------------
 startMarker = 60 # <
 endMarker = 62 # >
 
-data = data + "<"
 
-with open(infile, "r") as ins:
-    for line in ins:
-        data = data + line[:2].rstrip()
+def do_upload(infile):
+    data = ""
+    data = data + "<"
 
-data = data + ">"
+    with open(infile, "r") as ins:
+        for line in ins:
+            data = data + line[:2].rstrip()
 
-ser.write(data)
+    data = data + ">"
+    ser.write(data)
+
+for file in os.listdir(tests_dir):
+    if file.endswith(extn):
+        do_upload(os.path.join(tests_dir, file))
+        receiving = True
+        while receiving:
+            line = ser.readline()
+            print line
+            # time.sleep(2)
+            if "DONE" in line:
+                receiving = False
+
+
 # ser.write(data.encode('utf-8'))
 
 ser.close()
-sys.stdout.write(data.encode('utf-8'))
+
+# sys.stdout.write(data.encode('utf-8'))
