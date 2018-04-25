@@ -788,17 +788,27 @@ void doOperation() {
     // ################# debugging/testing
 
     case TEST:
-      testFlags();
+      // testFlags();
       return;
 
     case DUMP:
       Serial.begin(9600);
+      Serial.println("{");
+      Serial.print("\"pc\": ");
       Serial.println(pc);
+      Serial.print(",\n\"status\": ");
+      Serial.println(status);
+      Serial.print(",\n\"accA\": ");
       Serial.println(acc[0]);
+      Serial.print(",\n\"accB\": ");
       Serial.println(acc[1]);
+      Serial.print(",\n\"xReg\": ");
       Serial.println(xReg);
+      Serial.print(",\n\"pcStackP\": ");
       Serial.println(pcStackP);
+      Serial.print(",\n\"xStackP\": ");
       Serial.println(xStackP);
+      Serial.println("}");
       Serial.println("DONE");
       return;
 
@@ -1078,14 +1088,11 @@ void translateProg() {
   // flashMessage("Loading");
 
   if (newData == true) {
-    //  Serial.print("This just in ... ");
-    //  Serial.println(receivedChars);
-
     for (uint8_t pos = 0; pos < chars - 1; pos = pos + 2) {
       uint8_t hi = buffer[pos];
       uint8_t lo = buffer[pos + 1];
-      Serial.write(hi);
-      Serial.write(lo);
+      // Serial.write(hi);
+      // Serial.write(lo);
       hi = hexCharToValue(hi);
       lo = hexCharToValue(lo);
       uint8_t code = hi * 16 + lo;
@@ -1098,6 +1105,10 @@ void translateProg() {
     pc = 0;
     display();
     showStatus();
+    if (program[0] == TEST) {
+      flashMessage("testing");
+      mode = RUN_MODE;
+    }
   }
 }
 

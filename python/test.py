@@ -6,6 +6,7 @@ import serial
 import threading
 import time
 import os
+import json
 
 port = '/dev/ttyACM0'
 port1 = '/dev/ttyACM1'
@@ -14,7 +15,8 @@ if not os.path.exists(port):
     port = port1
 
 tests_dir = "../dog-code/tests"
-extn = ".dog"
+test_extn = ".dog"
+expected_extn = ".expected"
 
 infile = "prog.txt"
 
@@ -51,15 +53,38 @@ def do_upload(infile):
     ser.write(data)
 
 for file in os.listdir(tests_dir):
-    if file.endswith(extn):
-        do_upload(os.path.join(tests_dir, file))
+    if file.endswith(test_extn):
+        print "Test : "+file[:len(file)-len(test_extn)]
+        test_file = os.path.join(tests_dir, file)
+        do_upload(test_file)
         receiving = True
+        result =""
         while receiving:
             line = ser.readline()
-            print line
-            # time.sleep(2)
-            if "DONE" in line:
+            if not "DONE" in line:
+                result = result + line
+            else:
                 receiving = False
+                print "Result = "+result
+                result_json = json.loads(result)
+                expected_file = test_file[:len(test_file)-len(test_extn)]+expected_extn
+                expected = open(expected_file, "r")
+                expected_json = json.loads(expected.read())
+                success = True
+                for key in expected_json:
+                    if(expected_json[key]==-1):
+                        continue
+                    if(expected_json[key] != result_json[key]):
+                        success = False
+                        print "*** FAIL! ***"
+                        print "Expected : "+key+" = "+str(expected_json[key])
+                        print "Got : "+key+" = "+str(result_json[key])
+                if(success):
+                    print "Passed."
+
+            # time.sleep(2)
+
+
 
 
 # ser.write(data.encode('utf-8'))

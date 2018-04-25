@@ -1,7 +1,6 @@
-
-00 NOP
+F9 TEST
+00 NOP ; do nothing 5 times
 00 NOP
 00 NOP
 00 NOP
 F8 DUMP
-FF HALT
