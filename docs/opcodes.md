@@ -138,9 +138,11 @@
 0xDD DECX   increment Index Register  
 0xE0 USE   capture hardware  
 0xE1 UNUSE   release hardware  
-0xF6 TEMPO   set tempo  
-0xF7 TONE   play a tone  
-0xF8 REST   musical rest  
+0xF4 TEMPO   set tempo  
+0xF5 REST   musical rest  
+0xF6 TONE   play a tone, immediate  
+0xF7 TONEAB   play a tone, values from accumulators  
+0xF8 TONEx   play a tone, value from address in index reg  
 0xF9 TEST   run test routine  
 0xFA RND   load accumulators A & B with random values  
 0xFB PAUSE   wait for keypress  

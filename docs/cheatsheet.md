@@ -2,12 +2,9 @@
 
 |         | 0   | 1   | 2   | 3   | 4   | 5   | 6   | 7   |
 | :------ |:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| LEDs    |  N  |  V  |  Z  |  C  | \*  | \*  | \*  | \*  |
-|         |     |     |     |     |     |     |     |     |
-| 7-Segs  | -   | P   | C   | -   | M   | I   | O   | P   |
-|         |     |     |     |     |     |     |     |     |
-| Buttons | o   | o   | o   | o   | o   | o   | o   | o   |
-
+| **LEDs** |  Negative  |  Overflow  |  Zero   |  Carry  | \*  | \*  | \*  | \*  |
+| **7-Segs** | - | - | Program- | Counter | *Mode* | *Inc/Dec* | Op- | Code |
+| **Buttons** | o   | o   | o   | o   | o   | o   | o   | o   |
 
 
 **Flags**

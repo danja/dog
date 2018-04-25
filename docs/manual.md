@@ -68,8 +68,8 @@ Ex: INX increases the contents of the Index register by one. The address informa
 INCA increases the contents of the accumulator A by one.
 DECB decreases the contents of the accumulator B by one.
 
-* REL - Relative
-The relative addressing mode is used with most of the branching instructions on the 6802 microprocessor. The first byte of the instruction is the opcode. The second byte of the instruction is called the offset. The offset is interpreted as a signed 7-bit number. If the MSB (most significant bit) of the offset is 0, the number is positive, which indicates a forward branch. If the MSB of the offset is 1, the number is negative, which indicates a backward branch. This allows the user to address data in a range of -126 to +129 bytes of the present instruction. These are 2-byte instructions.
+* REL - Relative (tweaked)
+Relative addressing is used for branching instructions. These instructions take a single byte, which is used as an offset from the address of the **next** instruction. The offset is given as a two's complement number, allowing negative offsets.
 
 nn = 2 hex digits
 nnnn = 4 hex digits
@@ -196,6 +196,10 @@ xxxxnoPE - non-existent operation at xxxx
 xxxxChar - illegal character at xxxx (when uploading program)
 
 ## Instruction Set
+
+currently 152 instructions, maybe 50 implemented
+
+all off them listed in opcodes.md, opcodes.html, opcodes.pdf
 
 * System-related, starting with :
 00 NOP

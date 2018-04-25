@@ -57,7 +57,7 @@ INCA increases the contents of the accumulator A by one.
 DECB decreases the contents of the accumulator B by one.</p>
 </li>
 <li><p>REL - Relative
-The relative addressing mode is used with most of the branching instructions on the 6802 microprocessor. The first byte of the instruction is the opcode. The second byte of the instruction is called the offset. The offset is interpreted as a signed 7-bit number. If the MSB (most significant bit) of the offset is 0, the number is positive, which indicates a forward branch. If the MSB of the offset is 1, the number is negative, which indicates a backward branch. This allows the user to address data in a range of -126 to +129 bytes of the present instruction. These are 2-byte instructions.</p>
+Relative addressing is used for branching instructions. These instructions take a single byte, which is used as an offset from the address of the <strong>next</strong> instruction. The offset is given as a two&#39;s complement number, allowing negative offsets.</p>
 </li>
 </ul>
 <p>nn = 2 hex digits

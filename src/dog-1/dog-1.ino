@@ -224,8 +224,8 @@ const int speakerPin = 9;
 
 // increment/decrement registers
 
-#define INCA 0xD0 // increment accumulator A
-#define INCB 0xD1 // increment accumulator A
+#define INCA 0xD0 // increment accumulator A, affects ZNO
+#define INCB 0xD1 // increment accumulator B
 #define INCa 0xD2 // increment absolute address
 #define INCx 0xD3 // increment indexed address
 #define INCS 0xD4  // increment PC Stack pointer
@@ -233,7 +233,7 @@ const int speakerPin = 9;
 #define INCX 0xD6 // increment Index Register 
 
 #define DECA 0xD7 // increment accumulator A
-#define DECB 0xD8 // increment accumulator A
+#define DECB 0xD8 // increment accumulator B
 #define DECa 0xD9 // increment absolute address
 #define DECx 0xDA // increment indexed address
 #define DECS 0xDB  // increment PC Stack pointer
@@ -244,9 +244,12 @@ const int speakerPin = 9;
 #define USE 0xE0 // capture hardware 
 #define UNUSE 0xE1 // release hardware 
 
-#define TEMPO 0xF6 // set tempo
-#define TONE 0xF7 // play a tone
-#define REST 0xF8 // musical rest
+
+#define TEMPO 0xF4 // set tempo
+#define REST 0xF5 // musical rest
+#define TONE 0xF6 // play a tone, immediate
+#define TONEAB 0xF7 // play a tone, values from accumulators
+#define TONEx 0xF8 // play a tone, value from address in index reg
 
 //debugging/testing
 #define TEST 0xF9 // run test routine
@@ -627,9 +630,37 @@ void doOperation() {
     */
 
     case INCA:
-      acc[0] = acc[0] + 1 ;
+      if (acc[0] == 0xFF) setFlag(OVERFLOW, true);
+      acc[0]++;
       doAccFlags(0);
       return;
+
+    case INCB:
+      if (acc[1] == 0xFF) setFlag(OVERFLOW, true);
+      acc[1]++;
+      doAccFlags(1);
+      return;
+
+    case INCa:
+
+      return;
+
+    case INCx:
+
+      return;
+
+    case INCS:
+
+      return;
+
+    case INXS:
+
+      return;
+
+    case INCX:
+
+      return;
+
     /*
          bits 7 and 6 of operand are transfered to bit 7 and 6 of SR (N,V);
          the zeroflag is set to the result of operand AND accumulator.
@@ -738,7 +769,15 @@ void doOperation() {
       return;
 
     case TONE:
-      doTone();
+      doToneI();
+      return;
+
+    case TONEAB:
+      doToneAB();
+      return;
+
+    case TONEx:
+      doToneX();
       return;
 
     case REST:
@@ -799,11 +838,29 @@ void doOperation() {
    #############################################################
 */
 
-void doTone() {
-  unsigned int note = notes[program[++pc]];
-  unsigned long duration = program[++pc] * 6000 / tempo;
+void doTone(uint8_t rawNote, uint8_t rawDuration) {
+  while (rawNote > 88) {
+    rawNote = rawNote - 88;
+  }
+  unsigned int note = notes[rawNote];
+  unsigned long duration = rawDuration * 6000 / tempo;
   tone(speakerPin, note, duration);
   delay(duration);
+}
+
+void doToneI() {
+  uint8_t rawNote = program[++pc];
+  uint8_t rawDuration = program[++pc];
+  doTone(rawNote, rawDuration);
+}
+
+void doToneAB() {
+  doTone(acc[0], acc[1]);
+}
+
+void doToneX() {
+  unsigned int addr = readAbsoluteAddr();
+  doTone(program[addr], program[addr + 1]);
 }
 
 void doRest() {

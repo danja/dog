@@ -2,15 +2,15 @@
 LDAi AC ; put 0xAC in acc A
 LDBi E1 ; put 0xE1 in acc B
 LSR ; shift right (and into carry)
-BCC FE; branch -2 if carry clear
+BCC FD; branch -3 if carry clear
 EORAi B4 ; toggle mask
 EORBi 00
 PAUSE
-BZC FB ; branch up to the shift
+BZC F6 ; branch up to the shift
 HALT
 
 ; Bach
-TEMPO 30
+TEMPO 60
 TONE 13 04
 REST 04
 TONE 1F 04
@@ -29,20 +29,20 @@ TONE 0E 04
 REST 04
 TONE 0C 04
 REST 04
-TONE 34 01
-REST 01
-TONE 30 01
-REST 01
-TONE 2D 01
-REST 01
-TONE 2B 01
-REST 01
-TONE 2A 01
-REST 01
-TONE 2B 01
-REST 01
-TONE 12 08
-REST 08
+TONE 34 02
+REST 02
+TONE 30 02
+REST 02
+TONE 2D 02
+REST 02
+TONE 2B 02
+REST 02
+TONE 2A 02
+REST 02
+TONE 2B 02
+REST 02
+TONE 2A 04
+REST 04
 HALT
 
 NOP
