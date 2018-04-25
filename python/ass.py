@@ -4,7 +4,8 @@ import argparse
 
 src = "../src/dog-1/dog-1.ino"
 
-prog = "test.txt"
+infile = "test.txt"
+outfile = "out.txt"
 
 codes_dump = "../docs/opcodes.md"
 
@@ -17,11 +18,17 @@ hex = []
 codes = []
 comments = []
 
-parser = argparse.ArgumentParser(description='Minimal assembler for DOG-1.')
-parser.add_argument('--source-file', type=argparse.FileType('r'))
+args = argparse.ArgumentParser(description='Minimal assembler for DOG-1.')
+args.add_argument('-i','--input-file', action="store", dest='input')
+args.add_argument('-o','--output-file', action="store", dest='output')
 ## args.sqlite_file.name
+args_dict = vars(args.parse_args())
+if args_dict["input"]:
+    infile = args_dict["input"]
+if args_dict["output"]:
+    outfile = args_dict["output"]
 
-# read source file
+# read source file, make dictionary from opcodes
 def load_dictionary():
     in_opcodes = False
     with open(src, "r") as ins:
@@ -47,6 +54,7 @@ def load_dictionary():
             codes.append(chunks[1])
             comments.append(comment)
 
+# save the list of opcodes to file
 def dump_codes():
     with open(codes_dump, "w") as f:
     # LATER    f.write("| Inst | Syntax | Mode | Size |C|Z|V|N| Symbolic | Description |\n")
@@ -63,8 +71,9 @@ def dump_codes():
 # HALT
 
  # assemble program
-def do_codes():
-    with open(prog, "r") as ins:
+def assemble():
+    with open(infile, "r") as ins:
+        target = open(outfile,"w")
         for line in ins:
             # strip comments
             comment = line.find(';')
@@ -79,12 +88,15 @@ def do_codes():
             for chunk in chunks:
                 chunk = chunk.strip()
                 if chunk in dict.keys():
-                    print dict[chunk] + " " + line.strip()
+                    target.write(dict[chunk] + " " + line.strip()+"\n")
+                    # print dict[chunk] + " " + line.strip()
                 else:
                     if chunk != "\n":
-                        print chunk
+                        target.write(chunk+"\n")
+                        # print chunk
+        target.close()
 
 load_dictionary()
 dump_codes()
 # print dict["LDAi"]
-do_codes()
+assemble()

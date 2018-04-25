@@ -1,0 +1,16 @@
+
+10 LDAi AC ; put 0xAC in acc A
+AC
+18 LDBi E1 ; put 0xE1 in acc B
+E1
+2B LSR ; shift right (and into carry)
+6B BCC FD; branch -3 if carry clear
+FD
+B0 EORAi B4 ; toggle mask
+B4
+B4 EORBi 00
+00
+FB PAUSE
+69 BZC F6 ; branch up to the shift
+F6
+FF HALT

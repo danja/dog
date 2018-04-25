@@ -122,15 +122,15 @@
 0xC2 CLRB   clear value of accumulator B  
 0xC3 CLRa   clear absolute memory  
 0xC4 CLRx   clear indexed memory  
-0xD0 INCA   increment accumulator A  
-0xD1 INCB   increment accumulator A  
+0xD0 INCA   increment accumulator A, affects ZNO  
+0xD1 INCB   increment accumulator B  
 0xD2 INCa   increment absolute address  
 0xD3 INCx   increment indexed address  
 0xD4 INCS   increment PC Stack pointer  
 0xD5 INXS   increment Auxiliary Stack pointer  
 0xD6 INCX   increment Index Register  
 0xD7 DECA   increment accumulator A  
-0xD8 DECB   increment accumulator A  
+0xD8 DECB   increment accumulator B  
 0xD9 DECa   increment absolute address  
 0xDA DECx   increment indexed address  
 0xDB DECS   increment PC Stack pointer  

@@ -13,10 +13,20 @@ port1 = '/dev/ttyACM1'
 if not os.path.exists(port):
     port = port1
 
-print port
+infile = "prog.txt"
 
-# sort out later
-# parser = argparse.ArgumentParser()
+args = argparse.ArgumentParser(description='Minimal assembler for DOG-1.')
+args.add_argument('-i','--input-file', action="store", dest='input')
+args.add_argument('-p','--port', action="store", dest='port')
+## args.sqlite_file.name
+args_dict = vars(args.parse_args())
+if args_dict["input"]:
+    infile = args_dict["input"]
+if args_dict["port"]:
+    port = args_dict["port"]
+
+# print port
+
 
 
 ser = serial.Serial(port, 9600)
@@ -29,7 +39,7 @@ endMarker = 62 # >
 
 data = data + "<"
 
-with open("prog.txt", "r") as ins:
+with open(infile, "r") as ins:
     for line in ins:
         data = data + line[:2].rstrip()
 
