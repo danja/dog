@@ -52,9 +52,9 @@ def do_upload(infile):
     data = data + ">"
     ser.write(data)
 
-for file in os.listdir(tests_dir):
+for file in sorted(os.listdir(tests_dir)):
     if file.endswith(test_extn):
-        print "Test : "+file[:len(file)-len(test_extn)]
+        print "\n\nTest : "+file[:len(file)-len(test_extn)]+"\n"
         test_file = os.path.join(tests_dir, file)
         do_upload(test_file)
         receiving = True
@@ -66,8 +66,11 @@ for file in os.listdir(tests_dir):
             else:
                 receiving = False
                 print "Result = "+result
+                ser.flush()
+                time.sleep(.5)
                 result_json = json.loads(result)
                 expected_file = test_file[:len(test_file)-len(test_extn)]+expected_extn
+                print "loading "+expected_file
                 expected = open(expected_file, "r")
                 expected_json = json.loads(expected.read())
                 success = True

@@ -307,13 +307,7 @@ uint8_t status; // status register (flags), initialised with a vaguely helpful t
 */
 void initRegisters() {
 
-  pc = 0; // program counter
-  acc[0] = 0x12; // accumulator A, 8-bits
-  acc[1] = 0xEF; // accumulator B, 8-bits
-  xReg = 0; // index register, 16 bits
-  pcStackP = 0; // PC stack pointer, 16 bits
-  xStackP = 0; // Auxiliary stack pointer, 8 bits
-  status = 0x30; // status register (flags), initialised with a vaguely helpful test pattern, LEDs over system displays only (4 & 5)
+  resetRegisters();
 
   for (unsigned int i = 0; i < MAX_PROG_SIZE; i++) { // wipe all instructions
     program[i] = 0; // NOP
@@ -331,6 +325,16 @@ void initRegisters() {
   mode = PROG_MODE;
   ledStep = 0;
   pause = false;
+}
+
+void resetRegisters() {
+  pc = 0; // program counter
+  acc[0] = 0; // accumulator A, 8-bits
+  acc[1] = 0; // accumulator B, 8-bits
+  xReg = 0; // index register, 16 bits
+  pcStackP = 0; // PC stack pointer, 16 bits
+  xStackP = 0; // Auxiliary stack pointer, 8 bits
+  status = 0x30; // status register (flags), initialised with a vaguely helpful test pattern, LEDs over system displays only (4 & 5)
 }
 
 void welcome() {
@@ -797,7 +801,7 @@ void doOperation() {
       Serial.print("\"pc\": ");
       Serial.println(pc);
       Serial.print(",\n\"status\": ");
-      Serial.println(status);
+      Serial.println(status & 0x0F); // ignore extra flags for now
       Serial.print(",\n\"accA\": ");
       Serial.println(acc[0]);
       Serial.print(",\n\"accB\": ");
@@ -810,6 +814,7 @@ void doOperation() {
       Serial.println(xStackP);
       Serial.println("}");
       Serial.println("DONE");
+      delay(1000); // wait a sec
       return;
 
     case DEBUG:// flips the state of debug
@@ -1075,9 +1080,9 @@ void receiveProg() {
         chars = ndx;
       }
     }
-
     else if (rc == startMarker) {
       recvInProgress = true;
+      pc = 0;
     }
   }
 }
@@ -1108,6 +1113,7 @@ void translateProg() {
     if (program[0] == TEST) {
       flashMessage("testing");
       mode = RUN_MODE;
+      resetRegisters();
     }
   }
 }

@@ -1,7 +1,7 @@
 {
-"pc": 3,
-"status": 0,
-"accA": 102,
+"pc": -1,
+"status": -1,
+"accA": -1,
 "accB": -1,
 "xReg": -1,
 "pcStackP": -1,
