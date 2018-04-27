@@ -21,12 +21,20 @@ comments = []
 args = argparse.ArgumentParser(description='Minimal assembler for DOG-1.')
 args.add_argument('-i','--input-file', action="store", dest='input')
 args.add_argument('-o','--output-file', action="store", dest='output')
+args.add_argument('-s','--source-file', action="store", dest='source')
+args.add_argument('-d','--dump-codes', action="store", dest='dump')
+
 ## args.sqlite_file.name
 args_dict = vars(args.parse_args())
+
 if args_dict["input"]:
     infile = args_dict["input"]
 if args_dict["output"]:
     outfile = args_dict["output"]
+if args_dict["source"]:
+    src = args_dict["source"]
+if args_dict["dump"]:
+    codes_dump = args_dict["dump"]
 
 # read source file, make dictionary from opcodes
 def load_dictionary():
@@ -74,6 +82,7 @@ def dump_codes():
 def assemble():
     with open(infile, "r") as ins:
         target = open(outfile,"w")
+
         for line in ins:
             # strip comments
             comment = line.find(';')
@@ -81,6 +90,12 @@ def assemble():
                 cutline = line[:comment]
             else:
                 cutline = line.strip()
+
+            if line.startswith("start"):
+            #    print line[6:8]
+            #    print line[8:10]
+                target.write(line[6:8])
+                target.write(line[8:10])
             # print line
             #
             cutline = " ".join(cutline.split()) # normalise whitespace
@@ -97,6 +112,8 @@ def assemble():
         target.close()
 
 load_dictionary()
-dump_codes()
+
+if args_dict["dump"]:
+    dump_codes()
 # print dict["LDAi"]
 assemble()

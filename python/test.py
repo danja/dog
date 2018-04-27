@@ -60,14 +60,14 @@ for file in sorted(os.listdir(tests_dir)):
         receiving = True
         result =""
         while receiving:
-            line = ser.readline()
-            if not "DONE" in line:
-                result = result + line
+            char = ser.read()
+            if char != '.':
+                result = result + char
             else:
                 receiving = False
                 print "Result = "+result
                 ser.flush()
-                time.sleep(.5)
+                # time.sleep(.5)
                 result_json = json.loads(result)
                 expected_file = test_file[:len(test_file)-len(test_extn)]+expected_extn
                 print "loading "+expected_file

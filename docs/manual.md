@@ -150,9 +150,11 @@ There are some utilities in the python directory.
 * **ass.py** : minimal assembler
 
 This takes quasi-assembly language and looks up the corresponding hex values, producing a version suitable for uploading. The values are taken directly from definitions in DOG-!'s source code right now, so I can change things around without breaking anything.
+The first line specifies the start address at which to put the program.
 
 Example assembly :
 <pre>
+start 0005
 LDAi 66 ; put 0x66 in acc A
 STAa 07 00 ; store acc A at 0070
 HALT
@@ -172,6 +174,8 @@ Hex values for the opcodes should be the first two characters on each line, ever
 Example program for upload :
 
 </pre>
+00
+05
 10 LDAi 66 ; put 0x66 in acc A
 66
 14 STAa 07 00 ; store acc A at 0070
