@@ -143,6 +143,7 @@
 0xF2 TONE   play a tone, immediate  
 0xF3 TONEAB   play a tone, values from accumulators  
 0xF4 TONEx   play a tone, value from address in index reg  
+0xF7 RESET   hard reset  
 0xF8 DUMP   send register contents to serial  
 0xF9 TEST   run test routine  
 0xFA RND   load accumulators A & B with random values  

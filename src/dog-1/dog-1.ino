@@ -252,6 +252,7 @@ const int speakerPin = 9;
 #define TONEx 0xF4 // play a tone, value from address in index reg
 
 //debugging/testing
+#define RESET 0xF7 // hard reset
 #define DUMP 0xF8 // send register contents to serial
 #define TEST 0xF9 // run test routine
 #define RND 0xFA // load accumulators A & B with random values
@@ -365,6 +366,8 @@ void setup() {
    ################################################################
 */
 static boolean recvInProgress = false;
+boolean newData = false;
+boolean readyToReceive = true;
 
 void loop() {
   if (!recvInProgress) {
@@ -389,17 +392,23 @@ void loop() {
       }
     }
   }
-  receiveProg();
-  translateProg();
+  if (mode != RUN_MODE && !newData && readyToReceive) {
+    receiveProg();
+  }
+  if (newData) {
+    translateProg();
+  }
 }
 
 /**
- * ########################################################################################
+   ########################################################################################
    ############################# Serial Loading of Programs ###############################
    ########################################################################################
 */
 
-boolean newData = false;
+// Current problem appears to be that thing keeps loading even after it's loaded a prog and before it's run it. 
+//   readyToReceive seems like !newData..
+
 uint8_t buffer [256];
 static uint8_t rawSize;
 
@@ -420,16 +429,15 @@ void receiveProg() {
         if (ndx >= MAX_PROG_SIZE) {
           ndx = MAX_PROG_SIZE - 1;
         }
-      }
-      else {
+      } else { // got end marker
         recvInProgress = false;
         newData = true;
         rawSize = ndx;
-        //  Serial.end();
+        readyToReceive = false;
       }
-    }
-    else if (rc == startMarker) {
+    } else if (rc == startMarker) {
       mode = PROG_MODE;
+        readyToReceive = false;
       recvInProgress = true;
       flashMessage("Loading");
       // pc = 0;
@@ -441,47 +449,40 @@ void receiveProg() {
    Move data from buffer into program array
 */
 void translateProg() {
-  if (newData == true) {
-    // mode = PROG_MODE;
-    // pc = 0;
-    initRegisters();
+  // first two bytes specify program location
+  uint8_t hi = hexCharToValue(buffer[0]);
+  uint8_t lo = hexCharToValue(buffer[1]);
+  tm.displayHex(4, hi);
+  tm.displayHex(5, lo);
+  uint16_t start = hi * 16 + lo;
+  hi = hexCharToValue(buffer[2]);
+  lo = hexCharToValue(buffer[3]);
+  start = start * 256 + hi * 16 + lo;
 
-    // first two bytes specify program location
-    uint8_t hi = hexCharToValue(buffer[0]);
-    uint8_t lo = hexCharToValue(buffer[1]);
-    tm.displayHex(4, hi);
-    tm.displayHex(5, lo);
-    uint16_t start = hi * 16 + lo;
-    hi = hexCharToValue(buffer[2]);
-    lo = hexCharToValue(buffer[3]);
-    start = start * 256 + hi * 16 + lo;
-    tm.displayHex(6, hi);
-    tm.displayHex(7, lo);
-    delay(1000);
-    pc = start;
+  pc = start;
 
-    for (uint8_t pos = 4; pos < rawSize - 1; pos = pos + 2) {
-      // Serial.write(hi);
-      // Serial.write(lo);
-      hi = hexCharToValue(buffer[pos]);
-      lo = hexCharToValue(buffer[pos + 1]);
-      uint8_t code = hi * 16 + lo;
-      program[pc++] = code;
-      delay(10);
-      stepLED();
-    }
-    newData = false;
-    flashMessage("Loaded.");
-    
-    pc = start;
-    display();
-    showStatus();
-    
-    if (program[0] == TEST) {
-      flashMessage("testing");
-      mode = RUN_MODE;
-    }
+  for (uint8_t pos = 4; pos < rawSize - 1; pos = pos + 2) {
+    // Serial.write(hi);
+    // Serial.write(lo);
+    hi = hexCharToValue(buffer[pos]);
+    lo = hexCharToValue(buffer[pos + 1]);
+    uint8_t code = hi * 16 + lo;
+    program[pc++] = code;
+    delay(10);
+    stepLED();
   }
+  newData = false;
+  flashMessage("Loaded.");
+
+  pc = start;
+  display();
+  showStatus();
+
+  if (program[0] == TEST) {
+    flashMessage("testing");
+    mode = RUN_MODE;
+  }
+
 }
 
 /*
@@ -869,6 +870,11 @@ void doOperation() {
 
     // ################# debugging/testing
 
+    case RESET:
+      flashMessage("reset");
+      doReset();
+      return;
+
     case TEST:
       //   resetRegisters();
       // testFlags();
@@ -901,9 +907,12 @@ void doOperation() {
       Serial.println(">");
       // delay(1000); // wait a sec
       // Serial.end();
-      resetRegisters();
+      // resetRegisters();
       mode = PROG_MODE;
       flashMessage("dumped");
+      newData = false;
+      resetRegisters();
+      readyToReceive = true;
       // pc = 0;
       return;
 
@@ -943,7 +952,7 @@ void doOperation() {
       runMode = STEP;
       pc = 0;
       tm.displayASCII (0, 'S') ;
-       waitForButton();
+      waitForButton();
       return;
 
     default:
@@ -956,6 +965,10 @@ void doOperation() {
    ##################### Operation Helpers #####################
    #############################################################
 */
+
+void doReset() {
+  asm volatile ("  jmp 0");
+}
 
 void doTone(uint8_t rawNote, uint8_t rawDuration) {
   while (rawNote > 88) {

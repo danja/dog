@@ -93,7 +93,7 @@ for file in sorted(os.listdir(tests_dir)):
                 if(success):
                     print "Passed."
 
-            # time.sleep(2)
+        time.sleep(2)
 
 
 

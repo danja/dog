@@ -1,0 +1,6 @@
+00
+00
+F9 TEST
+10 LDAi 66
+66
+F8 DUMP
