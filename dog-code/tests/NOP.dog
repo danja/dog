@@ -1,7 +1,7 @@
 00
 00
 F9 TEST
-00 NOP ; do nothing 5 times
+00 NOP ; do nothing 4 times
 00 NOP
 00 NOP
 00 NOP

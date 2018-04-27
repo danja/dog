@@ -9,7 +9,9 @@ I'm writing up the [DOG-1 Manual](https://github.com/danja/dog/blob/master/docs/
 
 ### Status  
 
-**2018-04-24** : today added the opcode TONE <note> <duration>. That in itself was pretty trivial (although I do need to finesse the duration a bit). What wasn't so straightforward was that on trying a longer program that I have before, it showed up a major problem with my serial interface code (for uploading programs via Python on the laptop). It was failing after 32 instructions - turns out the Arduino Uno has a 64 byte buffer, and it's really easy to make mistakes. Had to rework the whole interface. But I finally managed to get it going, and so made another little video : [DOG-1 Bachs!](https://youtu.be/eEgXBOtdvvg).
+**2018-04-24** : have been setting up a test harness. Had a lot of trouble with serial (again), but right now it seems stable enough. The testing isn't quite there yet - it works fine for a single test, but not when trying more than one. The PC seems to have a mind of it's own...
+
+2018-04-24 : today added the opcode TONE <note> <duration>. That in itself was pretty trivial (although I do need to finesse the duration a bit). What wasn't so straightforward was that on trying a longer program that I have before, it showed up a major problem with my serial interface code (for uploading programs via Python on the laptop). It was failing after 32 instructions - turns out the Arduino Uno has a 64 byte buffer, and it's really easy to make mistakes. Had to rework the whole interface. But I finally managed to get it going, and so made another little video : [DOG-1 Bachs!](https://youtu.be/eEgXBOtdvvg).
 Based around assembler like this:
 
 <pre>
