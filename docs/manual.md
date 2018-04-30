@@ -58,9 +58,15 @@ In absolute addressing, the address contained in the second byte of the instruct
 Ex: LDAA $1000 loads the contents of the memory address (1000)H into accumulator A
 
 * IDX - Indexed
-In indexed addressing, the address contained in the second byte of the instruction is added to the index register’s lowest eight bits. The carry is then added to the higher order eight bits of the index register. This result is then used to address memory. The modified address is held in a temporary address register so there is no change to the index register. These are 2-byte instructions.
-Ex: LDX #$1000 or LDAA $10,X
-Initially, LDX #$1000 instruction loads 1000H to the index register (X) using immediate addressing. Then LDAA $10,X instruction, using indexed addressing, loads the contents of memory address (10)H + X = 1010H into accumulator A.
+void LDx(uint8_t id) { // Load accumulator A indexed (6502 calls it Indexed Indirect)
+  unsigned long addr = xReg;          // start with the index register value
+  addr += program[++pc];              // add the next byte in the program
+  acc[id] = program[addr];               // look up the value at the total
+}
+In indexed addressing, the address contained in the second byte of the instruction is added to the index register. This result is then used to address memory. The modified address is held in a temporary address register so there is no change to the index register. These are 2-byte instructions.
+Ex: LDx 0A
+// Initially, LDX #$1000 instruction loads 1000H to the index register (X) using immediate addressing. Then LDAA $10,X instruction, using indexed addressing, loads the contents of memory address (10)H + X = 1010H into accumulator A.
+// USE 2's comp?
 
 * IMP - Implied
 In the implied addressing mode, the instruction gives the address inherently (i.e, stack pointer, index register, etc.). Inherent instructions are used when no operands need to be fetched. These are 1 byte instructions.
@@ -92,6 +98,14 @@ lo, hi
 | 2   | Z    | Zero     | -                          |
 | 3   | C    | Carry    | -                          |
 | 7   | X    | Aux      | -                          |
+
+In unsigned arithmetic, watch the carry flag to detect errors.
+In unsigned arithmetic, the overflow flag tells you nothing interesting.
+
+In signed arithmetic, watch the overflow flag to detect errors.
+In signed arithmetic, the carry flag tells you nothing interesting.
+
+// http://teaching.idallen.com/dat2343/10f/notes/040_overflow.txt
 
 ## I/O
 

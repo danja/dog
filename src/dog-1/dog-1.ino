@@ -228,17 +228,17 @@ const int speakerPin = 9;
 #define INCB 0xD1 // increment accumulator B
 #define INCa 0xD2 // increment absolute address
 #define INCx 0xD3 // increment indexed address
-#define INCS 0xD4  // increment PC Stack pointer
+// #define INCS 0xD4  // increment PC Stack pointer
 #define INXS 0xD5  // increment Auxiliary Stack pointer
 #define INCX 0xD6 // increment Index Register 
 
-#define DECA 0xD7 // increment accumulator A
-#define DECB 0xD8 // increment accumulator B
-#define DECa 0xD9 // increment absolute address
-#define DECx 0xDA // increment indexed address
-#define DECS 0xDB  // increment PC Stack pointer
-#define DEXS 0xDC  // increment Auxiliary Stack pointer
-#define DECX 0xDD // increment Index Register 
+#define DECA 0xD7 // decrement accumulator A
+#define DECB 0xD8 // decrement accumulator B
+#define DECa 0xD9 // decrement absolute address
+#define DECx 0xDA // decrement indexed address
+// #define DECS 0xDB  // decrement PC Stack pointer
+#define DEXS 0xDC  // decrement Auxiliary Stack pointer
+#define DECX 0xDD // decrement Index Register 
 
 // hardware-related
 #define USE 0xE0 // capture hardware 
@@ -406,10 +406,12 @@ void loop() {
    ########################################################################################
 */
 
-// Current problem appears to be that thing keeps loading even after it's loaded a prog and before it's run it. 
+// Current problem appears to be that thing keeps loading even after it's loaded a prog and before it's run it.
 //   readyToReceive seems like !newData..
 
-uint8_t buffer [256];
+// note stream.readBytesUntil(character, buffer, length)
+
+uint8_t buffer [2 * MAX_PROG_SIZE]; // maybe buffer isn't needed now I've improved the serial..?
 static uint8_t rawSize;
 
 void receiveProg() {
@@ -437,7 +439,7 @@ void receiveProg() {
       }
     } else if (rc == startMarker) {
       mode = PROG_MODE;
-        readyToReceive = false;
+      readyToReceive = false;
       recvInProgress = true;
       flashMessage("Loading");
       // pc = 0;
@@ -492,7 +494,8 @@ void translateProg() {
 */
 void doOperation() {
   uint8_t op = program[pc];
-  uint8_t temp;
+  uint8_t val8; // temporary 8 bit value
+  uint8_t val16; // temporary 16 bit value
 
   switch (op) {
 
@@ -597,8 +600,8 @@ void doOperation() {
       } else {
         setFlag(ZERO, false);
       }
-      temp = acc[0] + (~acc[1] + 1);
-      setFlag(CARRY, temp & 128);
+      val8 = acc[0] + (~acc[1] + 1);
+      setFlag(CARRY, val8 & 128);
       // C bit set if subtraction would require a borrow in the most significant bit of result, otherwise cleared. V flag????
 
       return;
@@ -651,7 +654,7 @@ void doOperation() {
     case LSR: // shift right through both accumulators 0 -> A -> B -> CARRY
 
       setFlag(CARRY, acc[1] & 1);
-      // uint8_t temp = acc[1] & 1; // get 0th bit of acc B
+      // uint8_t val8 = acc[1] & 1; // get 0th bit of acc B
       acc[1] = acc[1] >> 1; // shift right
       acc[1] = ((acc[0] & 1) << 7) | acc[1]; // move lsb of acc A across
       acc[0] = acc[0] >> 1;
@@ -667,9 +670,9 @@ void doOperation() {
       return;
 
     case SWAP: // swap values between accumulator A & B
-      temp = acc[0];
+      val8 = acc[0];
       acc[0] = acc[1];
-      acc[1] = temp;
+      acc[1] = val8;
       showError("tESt");
       return;
 
@@ -703,46 +706,70 @@ void doOperation() {
       showError("tESt");
       return;
 
+    // Increment operators : affect ZNO
+
     /*
-       #define INCA 0xD0 // increment accumulator A
-      #define INCB 0xD1 // increment accumulator A
-      #define INCa 0xD2 // increment absolute address
-      #define INCx 0xD3 // increment indexed address
-      #define INCS 0xD4  // increment PC Stack pointer
-      #define INXS 0xD5  // increment Auxiliary Stack pointer
-      #define INCX 0xD6 // increment Index Register
-    */
+#define DECA 0xD7 // increment accumulator A
+#define DECB 0xD8 // increment accumulator B
+#define DECa 0xD9 // increment absolute address
+#define DECx 0xDA // increment indexed address
+// #define DECS 0xDB  // increment PC Stack pointer
+#define DEXS 0xDC  // increment Auxiliary Stack pointer
+#define DECX 0xDD // increment Index Register 
+*/
 
     case INCA:
       if (acc[0] == 0xFF) setFlag(OVERFLOW, true);
       acc[0]++;
-      doAccFlags(0);
+      doFlags(acc[0]);
+      return;
+
+          case DECA:
+      if (acc[0] == 0xFF) setFlag(OVERFLOW, true);
+      acc[0]++;
+      doFlags(acc[0]);
       return;
 
     case INCB:
       if (acc[1] == 0xFF) setFlag(OVERFLOW, true);
       acc[1]++;
-      doAccFlags(1);
+      doFlags(acc[1]);
       return;
 
     case INCa:
-
+      val16 = readAbsoluteAddr();
+      if (program[val16] == 0xFF) {
+        setFlag(OVERFLOW, true);
+      }
+      program[val16]++;
+      doFlags(program[val16]);
       return;
 
     case INCx:
-
-      return;
-
-    case INCS:
-
+      val16 = xReg;          // start with the index register value
+      val16 += program[++pc];              // add the next byte in the program
+      val8 = program[val16];               // look up the value at the total
+      if (program[val16] == 0xFF) {
+        setFlag(OVERFLOW, true);
+      }
+      program[val16]++;
+      doFlags(program[val16]);
       return;
 
     case INXS:
-
+      if (xStackP == 0xFF) {
+        setFlag(OVERFLOW, true);
+      }
+      xStackP++;
+      doFlags(xStackP);
       return;
 
     case INCX:
-
+      if (xReg == 0xFFFF) {
+        setFlag(OVERFLOW, true);
+      }
+      xReg++;
+      doFlags(xReg);
       return;
 
     /*
@@ -817,10 +844,10 @@ void doOperation() {
       return;
 
     case ROT: //  a b c => c a b
-      temp = xStack[xStackP];
+      val8 = xStack[xStackP];
       xStack[xStackP] = xStack[xStackP - 2];
       xStack[xStackP - 2] = xStack[xStackP - 1];
-      xStack[xStackP - 1] = temp;
+      xStack[xStackP - 1] = val8;
       showError("tESt");
       return;
 
@@ -1002,7 +1029,7 @@ void doRest() {
 /**
    read two bytes from program (updating PC 2), combine & return
 */
-unsigned int readAbsoluteAddr() {
+uint16_t readAbsoluteAddr() {
   uint8_t lo = program[++pc];
   uint8_t hi = program[++pc];
   return (hi << 8) + lo;
@@ -1048,15 +1075,15 @@ void testFlags() {
   delay(1000);
 }
 
-void doAccFlags(uint8_t id) {
-  setFlag(ZERO, acc[id] == 0); /////////////////////////// acc[id] == 0
-  setFlag(NEGATIVE, acc[id] & 128);
+void doFlags(uint16_t val) {
+  setFlag(ZERO, val == 0); /////////////////////////// acc[id] == 0
+  setFlag(NEGATIVE, val & 128);
 }
 
 void LDi(uint8_t id) {             // Load accumulator <id> immediate
   acc[id] = program[++pc]; // move to next position in program, load into acc
   setFlag(OVERFLOW, false);
-  doAccFlags(id);
+  doFlags(acc[id]);
 }
 
 void LDa(uint8_t id) { // Load accumulator <id> absolute
@@ -1096,7 +1123,7 @@ void ROR(uint8_t id) { // rotate left accumulator <id>
 void EORi(uint8_t id) { // EXOR
   acc[id] = acc[id] ^ program[++pc]; // move to next position in program, exor with acc acc
   setFlag(OVERFLOW, false);
-  doAccFlags(id);
+  doFlags(acc[id]);
 }
 
 // ####################################################################################
