@@ -19,7 +19,7 @@ const int speakerPin = 9;
 // TM1638lite tm = TM1638lite::TM1638lite(4, 7, 8);
 
 
-#define MAX_PROG_SIZE 256 // probably need to move prog elsewhere, is greedy
+#define MAX_PROG_SIZE 128 // probably need to move prog elsewhere, is greedy
 #define PC_STACK_SIZE 64
 #define X_STACK_SIZE 64
 
@@ -435,11 +435,12 @@ void receiveProg() {
           ndx = MAX_PROG_SIZE - 1;
         }
       } else { // got end marker
+         flashMessage("Loaded");
         recvInProgress = false;
         newData = true;
         rawSize = ndx;
         readyToReceive = false;
-        if (readLong[0] == 0xFF && readLong(2) == 0xFF) {
+        if (readLong(0) == 0xFF && readLong(2) == 0xFF) {
           //    loadToEEPROM();
           loadToEEPROM = true;
         }
@@ -448,7 +449,7 @@ void receiveProg() {
       mode = PROG_MODE;
       readyToReceive = false;
       recvInProgress = true;
-      flashMessage("Loading");
+  flashMessage("Loading");
       // pc = 0;
     }
   }
@@ -456,30 +457,27 @@ void receiveProg() {
 
 void loadFromEEPROM() {
   flashMessage("EEPROM");
-  for (uint8_t i = 0; i < end; i++) {
+  for (uint16_t i = 0; i < end; i++) {
     program[i] = EEPROM.read(i);
   }
 }
 
 uint16_t readLong(uint16_t startPos) {
-  uint8_t hi = hexCharToValue(startPos);
-  uint8_t lo = hexCharToValue(startPos + 1);
+  uint8_t hi = hexCharToValue(buffer[startPos]);
+  uint8_t lo = hexCharToValue(buffer[startPos + 1]);
   return hi * 16 + lo;
 }
 /*
    Move data from buffer into program array
 */
 void translateProg() {
-  uint8_t dataStart = 4;
+
   uint16_t start = 0;
 
   // first two bytes specify program location
-  if (!loadFromEEPROM) {
-    start = readLong(0) * 256 + readLong(2);
-  } else {
-    dataStart = 2;
+  if (!loadToEEPROM) {
+   start = readLong(0) * 256 + readLong(2);
   }
-
   /*
          uint8_t hi = hexCharToValue(buffer[0]);
       uint8_t lo = hexCharToValue(buffer[1]);
@@ -491,7 +489,7 @@ void translateProg() {
   */
   pc = start;
 
-  for (uint8_t pos = dataStart; pos < rawSize - 1; pos = pos + 2) {
+  for (uint8_t pos = 4; pos < rawSize - 1; pos = pos + 2) {
     // Serial.write(hi);
     // Serial.write(lo);
     uint8_t hi = hexCharToValue(buffer[pos]); // USE READLONG
@@ -516,8 +514,8 @@ void translateProg() {
 
   if (loadToEEPROM) {
     flashMessage("EEPROM");
-    for (uint8_t i = 0; i < end; i++) {
-      EEPROM.update(i, program[i]);
+    for (uint16_t i = 0; i < end; i++) {
+      EEPROM[i] = program[i];
     }
   }
 }
@@ -1310,10 +1308,10 @@ void handleButtons() {
       return;
     }
 
-    // 0 & 6 - display PC Stack Pointer
+    // 0 & 6 - display EEPROM
     if ( (buttons & (1 << 0)) && (buttons & (1 << 6))) {
-      displayPC();
-      displayHex(4, 4, pcStackP);
+        displayPC();
+      displayHex(6, 2, EEPROM[pc]);
       waitForButton();
       return;
     }
