@@ -126,16 +126,16 @@
 0xD1 INCB   increment accumulator B  
 0xD2 INCa   increment absolute address  
 0xD3 INCx   increment indexed address  
-0xD4 INCS   increment PC Stack pointer  
+INCS #define   #define INCS 0xD4 // increment PC Stack pointer  
 0xD5 INXS   increment Auxiliary Stack pointer  
 0xD6 INCX   increment Index Register  
-0xD7 DECA   increment accumulator A  
-0xD8 DECB   increment accumulator B  
-0xD9 DECa   increment absolute address  
-0xDA DECx   increment indexed address  
-0xDB DECS   increment PC Stack pointer  
-0xDC DEXS   increment Auxiliary Stack pointer  
-0xDD DECX   increment Index Register  
+0xD7 DECA   decrement accumulator A  
+0xD8 DECB   decrement accumulator B  
+0xD9 DECa   decrement absolute address  
+0xDA DECx   decrement indexed address  
+DECS #define   #define DECS 0xDB // decrement PC Stack pointer  
+0xDC DEXS   decrement Auxiliary Stack pointer  
+0xDD DECX   decrement Index Register  
 0xE0 USE   capture hardware  
 0xE1 UNUSE   release hardware  
 0xF0 TEMPO   set tempo  

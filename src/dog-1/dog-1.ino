@@ -1,3 +1,4 @@
+#include <EEPROM.h>
 #include <unwind-cxx.h>
 #include <StandardCplusplus.h>
 #include <system_configuration.h>
@@ -413,9 +414,11 @@ void loop() {
 
 uint8_t buffer [2 * MAX_PROG_SIZE]; // maybe buffer isn't needed now I've improved the serial..?
 static uint8_t rawSize;
+boolean loadToEEPROM;
+uint16_t end;
 
 void receiveProg() {
-
+  loadToEEPROM = false;
   static uint8_t ndx = 0;
   char startMarker = '<';
   char endMarker = '>';
@@ -436,6 +439,10 @@ void receiveProg() {
         newData = true;
         rawSize = ndx;
         readyToReceive = false;
+        if (readLong[0] == 0xFF && readLong(2) == 0xFF) {
+          //    loadToEEPROM();
+          loadToEEPROM = true;
+        }
       }
     } else if (rc == startMarker) {
       mode = PROG_MODE;
@@ -447,32 +454,54 @@ void receiveProg() {
   }
 }
 
+void loadFromEEPROM() {
+  flashMessage("EEPROM");
+  for (uint8_t i = 0; i < end; i++) {
+    program[i] = EEPROM.read(i);
+  }
+}
+
+uint16_t readLong(uint16_t startPos) {
+  uint8_t hi = hexCharToValue(startPos);
+  uint8_t lo = hexCharToValue(startPos + 1);
+  return hi * 16 + lo;
+}
 /*
    Move data from buffer into program array
 */
 void translateProg() {
-  // first two bytes specify program location
-  uint8_t hi = hexCharToValue(buffer[0]);
-  uint8_t lo = hexCharToValue(buffer[1]);
-  tm.displayHex(4, hi);
-  tm.displayHex(5, lo);
-  uint16_t start = hi * 16 + lo;
-  hi = hexCharToValue(buffer[2]);
-  lo = hexCharToValue(buffer[3]);
-  start = start * 256 + hi * 16 + lo;
+  uint8_t dataStart = 4;
+  uint16_t start = 0;
 
+  // first two bytes specify program location
+  if (!loadFromEEPROM) {
+    start = readLong(0) * 256 + readLong(2);
+  } else {
+    dataStart = 2;
+  }
+
+  /*
+         uint8_t hi = hexCharToValue(buffer[0]);
+      uint8_t lo = hexCharToValue(buffer[1]);
+      tm.displayHex(4, hi);
+      tm.displayHex(5, lo);
+      start = readLong(0);
+      hi = hexCharToValue(buffer[2]);
+      lo = hexCharToValue(buffer[3]);
+  */
   pc = start;
 
-  for (uint8_t pos = 4; pos < rawSize - 1; pos = pos + 2) {
+  for (uint8_t pos = dataStart; pos < rawSize - 1; pos = pos + 2) {
     // Serial.write(hi);
     // Serial.write(lo);
-    hi = hexCharToValue(buffer[pos]);
-    lo = hexCharToValue(buffer[pos + 1]);
+    uint8_t hi = hexCharToValue(buffer[pos]); // USE READLONG
+    uint8_t lo = hexCharToValue(buffer[pos + 1]);
     uint8_t code = hi * 16 + lo;
     program[pc++] = code;
     delay(10);
     stepLED();
   }
+  end = pc;
   newData = false;
   flashMessage("Loaded.");
 
@@ -485,6 +514,12 @@ void translateProg() {
     mode = RUN_MODE;
   }
 
+  if (loadToEEPROM) {
+    flashMessage("EEPROM");
+    for (uint8_t i = 0; i < end; i++) {
+      EEPROM.update(i, program[i]);
+    }
+  }
 }
 
 /*
@@ -709,14 +744,14 @@ void doOperation() {
     // Increment operators : affect ZNO
 
     /*
-#define DECA 0xD7 // increment accumulator A
-#define DECB 0xD8 // increment accumulator B
-#define DECa 0xD9 // increment absolute address
-#define DECx 0xDA // increment indexed address
-// #define DECS 0xDB  // increment PC Stack pointer
-#define DEXS 0xDC  // increment Auxiliary Stack pointer
-#define DECX 0xDD // increment Index Register 
-*/
+      #define DECA 0xD7 // increment accumulator A
+      #define DECB 0xD8 // increment accumulator B
+      #define DECa 0xD9 // increment absolute address
+      #define DECx 0xDA // increment indexed address
+      // #define DECS 0xDB  // increment PC Stack pointer
+      #define DEXS 0xDC  // increment Auxiliary Stack pointer
+      #define DECX 0xDD // increment Index Register
+    */
 
     case INCA:
       if (acc[0] == 0xFF) setFlag(OVERFLOW, true);
@@ -724,7 +759,7 @@ void doOperation() {
       doFlags(acc[0]);
       return;
 
-          case DECA:
+    case DECA:
       if (acc[0] == 0xFF) setFlag(OVERFLOW, true);
       acc[0]++;
       doFlags(acc[0]);
@@ -1240,6 +1275,13 @@ void handleButtons() {
     if ( (buttons & (1 << 0)) && (buttons & (1 << 1))) {
       initRegisters();
       resetSystem();
+      return;
+    }
+
+    // 0 & 2 load from EEPROM
+    if ( (buttons & (1 << 0)) && (buttons & (1 << 2))) {
+      initRegisters();
+      loadFromEEPROM();
       return;
     }
 

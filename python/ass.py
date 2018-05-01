@@ -91,11 +91,19 @@ def assemble():
             else:
                 cutline = line.strip()
 
-            if line.startswith("start"):
+            if line.startswith("START"):
             #    print line[6:8]
             #    print line[8:10]
-                target.write(line[6:8])
-                target.write(line[8:10])
+                target.write(line[6:8]+' START\n')
+                target.write(line[8:10]+'\n')
+                continue
+
+            if line.startswith("EEPROM"):
+                #    print line[6:8]
+                #    print line[8:10]
+                target.write('FF EEPROM\n')
+                target.write('FF\n')
+                continue
             # print line
             #
             cutline = " ".join(cutline.split()) # normalise whitespace
