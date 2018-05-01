@@ -1395,6 +1395,7 @@ void handleButtons() {
       return;
     }
 
+/*
     if (buttons & (1 << 0)) { // is out of reach of current size
       if (incdec) {
         pc += 4096;
@@ -1403,6 +1404,7 @@ void handleButtons() {
       }
       return;
     }
+    */
 
     /**
        ################################# do code buttons ############
