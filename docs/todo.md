@@ -11,3 +11,7 @@
 * IO : other Arduino pins
 
 * repurpose display 0 (turn off increment on it)
+
+* move tables to PROGMEM
+
+* use interrupts

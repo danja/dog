@@ -358,7 +358,7 @@ void setup() {
   tm.reset(); // reset display hardware
   initRegisters();
   resetSystem();
-  Serial.begin(57600); // 9600
+  Serial.begin(9600);
 }
 
 /**
@@ -877,8 +877,6 @@ void doOperation() {
       showError("tESt");
       return;
 
-/*
- * 
 case LSPi: // load Stack Pointer, immediate
  // xStackP =
 return;

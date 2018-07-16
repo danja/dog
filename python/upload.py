@@ -29,11 +29,11 @@ if args_dict["port"]:
 
 
 
-ser = serial.Serial(port, 9600)
+ser = serial.Serial(port, 57600) # 9600
 
 # TODO replace with handshake
 print "Sleeping while Arduino reboots..."
-time.sleep(4)
+time.sleep(8)
 
 data = ""
 startMarker = 60 # <
