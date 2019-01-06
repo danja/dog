@@ -5,7 +5,7 @@
 
 Playing with a cheapo TM1638 card driven by an Arduino Uno. Trying to put together a 1970's-style single-board computer a bit like the KIM-1, except with two boards and my own instruction set etc.
 
-I'm writing up the [DOG-1 Manual](https://github.com/danja/dog/blob/master/docs/manual.md) as I go along. I did a short intro video early on : [DOG-1 Intro](https://www.youtube.com/watch?v=qjk-y1qbj7w). 
+I'm writing up the [DOG-1 Manual](https://github.com/danja/dog/blob/master/docs/manual.md) as I go along. I did a short intro video early on : [DOG-1 Intro](https://www.youtube.com/watch?v=qjk-y1qbj7w).
 
 ### Status
 
@@ -16,6 +16,8 @@ There's nothing like returning to a project after a break to highlight bugs and 
 Regarding documentation, I did struggle to get things going from my current notes. Need a quickstart doc.
 
 On a general point, while I've found the Arduino IDE pretty much usable so far, it does seem a bit clunky for use with anything but off-the-shelf libs, so once I've caught up with current issues, I plan to move over to [PlatformIO](https://platformio.org/).
+
+I want to use [ESP32](https://www.espressif.com/en/products/hardware/esp32/overview) cards in other projects, so I may well have a go at porting Dog across, and web-enabling it.
 
 2018-07-16 : looking at the thing again after a long break, looks like last time I committed a broken version - a typo meant it wouldn't even compile. Oops! Fixed that, tried the TONE [Bach demo](https://github.com/danja/dog/blob/master/dog-code/bach.ass), it locked up on loading, although a shorter program would upload ok. Also flipping back from Run to Program mode seems buggy. Annoying. My guess is timing errors in both cases. I think I'm using a different Uno board than before, so maybe fluked it last time. (Although I just saw a commit comment saying I had loadToEEPROM issues - dunno if I corrected those). Need to reread my notes...
 
