@@ -1,0 +1,11 @@
+;; random
+LDAi AC ; put 0xAC in acc A
+LDBi E1 ; put 0xE1 in acc B
+LSR ; shift right (and into carry)
+BCC FD; branch -3 if carry clear
+EORAi B4 ; toggle mask
+EORBi 00
+; PAUSE
+TONEAB
+BRA F6 ; branch up to the shift
+HALT

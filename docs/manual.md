@@ -159,7 +159,9 @@ Pressing button 4 will switch to **Run** mode.
 
 #### Programming from PC
 
-There are some utilities in the python directory.
+There are some utilities in the python directory. [pyserial](https://github.com/pyserial/pyserial) is required:
+
+<pre>pip install pyserial</pre>
 
 * **ass.py** : minimal assembler
 

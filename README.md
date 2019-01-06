@@ -5,11 +5,19 @@
 
 Playing with a cheapo TM1638 card driven by an Arduino Uno. Trying to put together a 1970's-style single-board computer a bit like the KIM-1, except with two boards and my own instruction set etc.
 
-I'm writing up the [DOG-1 Manual](https://github.com/danja/dog/blob/master/docs/manual.md) as I go along. I did a short intro video early on : [DOG-1 Intro](https://www.youtube.com/watch?v=qjk-y1qbj7w).
+I'm writing up the [DOG-1 Manual](https://github.com/danja/dog/blob/master/docs/manual.md) as I go along. I did a short intro video early on : [DOG-1 Intro](https://www.youtube.com/watch?v=qjk-y1qbj7w). 
 
-### Status  
+### Status
 
-**2018-07-16** : looking at the thing again after a long break, looks like last time I committed a broken version - a typo meant it wouldn't even compile. Oops! Fixed that, tried the TONE [Bach demo](https://github.com/danja/dog/blob/master/dog-code/bach.ass), it locked up on loading, although a shorter program would upload ok. Also flipping back from Run to Program mode seems buggy. Annoying. My guess is timing errors in both cases. I think I'm using a different Uno board than before, so maybe fluked it last time. (Although I just saw a commit comment saying I had loadToEEPROM issues - dunno if I corrected those). Need to reread my notes...
+**2019-01-05** : picking up the project again after a long break. My main dev machine packed up, so I've been forced to set things up from scratch on an old laptop. First issue, the Standard C++ libraries I was using no longer work  with the latest Arduino libs. Luckily I found the [ArduinoSTL](https://github.com/mike-matera/ArduinoSTL), which (after a tweak to the headers) worked straight away.
+
+There's nothing like returning to a project after a break to highlight bugs and gaps in documentation. On the former, the flow control still isn't quite right. Stuff will run ok, but it can take a bit of keypad fumbling. I also see I haven't yet fixed the problem of loading long Dog programs, and there are definite issues with some of the opcodes I've implemented, notably the branches. I guess I'll just had to plod through, building tests. It's a bit embarrasing for someone who's been coding for 40 years to admit, but I've been having to review [2's Complement Arithmetic](https://www.cs.cornell.edu/~tomf/notes/cps104/twoscomp.html)...
+
+Regarding documentation, I did struggle to get things going from my current notes. Need a quickstart doc.
+
+On a general point, while I've found the Arduino IDE pretty much usable so far, it does seem a bit clunky for use with anything but off-the-shelf libs, so once I've caught up with current issues, I plan to move over to [PlatformIO](https://platformio.org/).
+
+2018-07-16 : looking at the thing again after a long break, looks like last time I committed a broken version - a typo meant it wouldn't even compile. Oops! Fixed that, tried the TONE [Bach demo](https://github.com/danja/dog/blob/master/dog-code/bach.ass), it locked up on loading, although a shorter program would upload ok. Also flipping back from Run to Program mode seems buggy. Annoying. My guess is timing errors in both cases. I think I'm using a different Uno board than before, so maybe fluked it last time. (Although I just saw a commit comment saying I had loadToEEPROM issues - dunno if I corrected those). Need to reread my notes...
 
 2018-04-24 : have been setting up a test harness. Had a lot of trouble with serial (again), but right now it seems stable enough. The testing isn't quite there yet - it works fine for a single test, but not when trying more than one. The PC seems to have a mind of it's own...
 
